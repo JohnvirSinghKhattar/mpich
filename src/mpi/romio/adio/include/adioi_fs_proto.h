@@ -14,6 +14,11 @@ extern struct ADIOI_Fns_struct ADIO_NFS_operations;
 /* prototypes are in adio/ad_nfs/ad_nfs.h */
 #endif
 
+#ifdef ROMIO_JULEA
+extern struct ADIOI_Fns_struct ADIO_JULEA_operations;
+/* prototypes are in adio/ad_nfs/ad_julea.h */
+#endif
+
 #ifdef ROMIO_PANFS
 extern struct ADIOI_Fns_struct ADIO_PANFS_operations;
 /* prototypes are in adio/ad_panfs/ad_panfs.h */

@@ -278,6 +278,7 @@ typedef struct {
  * the numbering is slightly strange because we have deleted file
  * systems over time */
 #define ADIO_NFS                 150
+#define ADIO_JULEA               171   //TODO CHECK
 #define ADIO_UFS                 152    /* Unix file system */
 #define ADIO_XFS                 154    /* SGI */
 #define ADIO_TESTFS              159    /* fake file system for testing */
