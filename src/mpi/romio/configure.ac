@@ -188,7 +188,7 @@ dnl An m4 macro for use with m4_foreach_w and friends.  You should modify this
 dnl list if you want to add a known file system.  The list is just whitespace
 dnl separated, so you can use newlines and tabs as well.
 m4_define([known_filesystems_m4_w],
-          [daos nfs ufs pvfs2 testfs xfs panfs lustre gpfs ime])dnl
+          [daos nfs ufs pvfs2 testfs xfs panfs lustre gpfs ime juela ])dnl
 dnl
 dnl An m4 macro for use with m4_foreach and friends.  Expands to a quoted list of
 dnl quoted elements.  A bit easier to use without unintended expansion than the
@@ -893,6 +893,10 @@ AM_CONDITIONAL([BUILD_PANFS_OPEN6], [test "X$ac_cv_type_pan_fs_client_raidn_enco
 
 if test -n "$file_system_ufs"; then
     AC_DEFINE(ROMIO_UFS,1,[Define for ROMIO with UFS])
+fi
+
+if test -n "$file_system_julea"; then
+    AC_DEFINE(ROMIO_JULEA,1,[Define for ROMIO with JULEA])
 fi
 
 changequote(<<,>>)
