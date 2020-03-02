@@ -23,6 +23,7 @@ __LINUX_ALPHA_
 __CRAY_
 __Darwin_
 __nfs_
+__julea_ 
 __ufs_
 __pfs_
 __piofs_

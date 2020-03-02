@@ -23,6 +23,7 @@
 	'XFS'=> romio,
 	'CB_CONFIG_LIST_DEBUG'=> romio,
 	'SFS'=> romio,
+	'JULEA'=> romio,
 	'HFS'=> romio,
 	'UFS'=> romio,
 	'PVFS_.+' => romio,
