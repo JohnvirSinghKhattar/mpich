@@ -519,7 +519,7 @@ void ADIOI_NFS_WriteStrided(ADIO_File fd, const void *buf, int count,
                                                MPIR_ERR_RECOVERABLE,
                                                myname, __LINE__,
                                                MPI_ERR_IO,
-                                               "ADIOI_NFS_WriteStrided: ROMIO tries to optimize this access by doing a read-modify-write, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.",
+                                               "ADIOI_NFS_WriteStrided: ROMIO tries to optimize this access by doing a read-modify-write, but is unable to read the file. Please give the file read permission and : it with MPI_MODE_RDWR.",
                                                0);
             goto fn_exit;
         }
