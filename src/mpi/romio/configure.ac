@@ -188,7 +188,7 @@ dnl An m4 macro for use with m4_foreach_w and friends.  You should modify this
 dnl list if you want to add a known file system.  The list is just whitespace
 dnl separated, so you can use newlines and tabs as well.
 m4_define([known_filesystems_m4_w],
-          [daos nfs ufs pvfs2 testfs xfs panfs lustre gpfs ime juela ])dnl
+          [daos nfs ufs pvfs2 testfs xfs panfs lustre gpfs ime julea ])dnl
 dnl
 dnl An m4 macro for use with m4_foreach and friends.  Expands to a quoted list of
 dnl quoted elements.  A bit easier to use without unintended expansion than the
