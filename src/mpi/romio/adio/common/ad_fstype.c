@@ -176,7 +176,7 @@ static struct ADIO_FSTypes fstypes[] = {
     {&ADIO_IME_operations, ADIO_IME, "ime:"},
 #endif
 #ifdef ROMIO_JULEA
-    {&ADIO_IME_operations, ADIO_JULEA, "julea:"},
+    {&ADIO_JULEA_operations, ADIO_JULEA, "julea:"},
 #endif
     {0, 0, 0}   /* guard entry */
 };
