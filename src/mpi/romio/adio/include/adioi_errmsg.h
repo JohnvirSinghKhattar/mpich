@@ -48,6 +48,7 @@ MPI_ERR_IO
     MPIR_ERR_NO_XFS "ROMIO has not been configured to use the XFS file system"
     MPIR_ERR_NO_PVFS2 "ROMIO has not been configured to use the PVFS2 file system"
     MPIR_ERR_NO_PANFS "ROMIO has not been configured to use the PANFS file system"
+    MPIR_ERR_NO_JULEA "ROMIO has not been configured to use the JULEA file system"
     MPIR_ERR_MULTIPLE_SPLIT_COLL "Only one active split collective I/O operation allowed per file handle"
     MPIR_ERR_NO_SPLIT_COLL "No previous split collective begin"
     MPIR_ERR_ASYNC_OUTSTANDING "There are outstanding nonblocking I/O operations on this file"
