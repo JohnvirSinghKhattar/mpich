@@ -600,6 +600,7 @@ static void ADIO_FileSysType_prefix(const char *filename, int *fstype,
 
     i = 0;
     while (fstypes[i].fileops) {
+     printf("checking %s == %s\n", fstypes[i].prefix, filename);
         if (!strncasecmp(fstypes[i].prefix, filename, strlen(fstypes[i].prefix))) {
             *fstype = fstypes[i].fstype;
             *ops = fstypes[i].fileops;
