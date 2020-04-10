@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: configure
-      run: ./configure
+      run: ./autogen.sh && ./configure --disable-fortran --with-device=ch3 /mpich-install-new 2>&1 | tee c.txt
     - name: make
       run: make
     - name: make check
