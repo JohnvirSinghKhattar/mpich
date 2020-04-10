@@ -76,6 +76,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <julea.h>
+#include <julea-object.h>
 #ifdef SPPUX
 #include <sys/cnx_fcntl.h>
 #endif
