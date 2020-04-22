@@ -896,6 +896,8 @@ if test -n "$file_system_ufs"; then
 fi
 
 if test -n "$file_system_julea"; then
+    LDFLAGS="$LDFLAGS $(pkg-config --libs julea julea-object)"
+    CPPFLAGS="$CPPFLAGS $(pkg-config --cflags julea julea-object)"	
     AC_DEFINE(ROMIO_JULEA,1,[Define for ROMIO with JULEA])
 fi
 
