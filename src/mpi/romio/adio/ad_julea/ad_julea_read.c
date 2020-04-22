@@ -5,8 +5,8 @@
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#include <julea.h>
-#include <julea-object.h>
+//#include <julea.h>
+//#include <julea-object.h>
 #include "ad_julea.h"
 #include "adio_extern.h"
 #ifdef HAVE_UNISTD_H
