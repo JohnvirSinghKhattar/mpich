@@ -16,7 +16,7 @@ jobs:
     - name: configure
       run: ./autogen.sh &&
             export PKG_CONFIG_PATH=$JULEA_PREFIX/lib/pkg-config && 
-          ./configure --disable-fortan --prefix=$PWD/install --with-device=ch3 --with-file-system=ufs+julea
+          ./configure --disable-fortan --prefix=${GITHUB_WORKSPACE}/install --with-device=ch3 --with-file-system=ufs+julea
     - name: make
       run: make
     - name: make check
