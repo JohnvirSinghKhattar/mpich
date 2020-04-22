@@ -14,7 +14,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: configure
-      run: ./autogen.sh && ./configure --disable-fortran --with-device=ch3 --prefix="${GITHUB_WORKSPACE}/mpich-install-new" 2>&1 | tee c.txt
+      run: ./autogen.sh &&
+            export PKG_CONFIG_PATH=$JULEA_PREFIX/lib/pkg-config && 
+          ./configure --disable-fortan --prefix=$PWD/install --with-device=ch3 --with-file-system=ufs+julea
     - name: make
       run: make
     - name: make check
