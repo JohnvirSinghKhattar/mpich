@@ -24,10 +24,10 @@ void ADIOI_JULEA_ReadContig(ADIO_File fd, void *buf, int count,
     static char myname[] = "ADIOI_JULEA_READCONTIG";
     char *p;
 
-    if (count == 0) {
+   /* if (count == 0) {
         err = 0;
         goto fn_exit;
-    }
+    } */
 
     MPI_Type_size_x(datatype, &datatype_size);
     len = datatype_size * (ADIO_Offset) count;
