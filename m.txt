@@ -1,0 +1,73 @@
+make  all-recursive
+make[1]: Entering directory '/home/khattar/Documents/mpich'
+Making all in src/mpl
+make[2]: Entering directory '/home/khattar/Documents/mpich/src/mpl'
+make[2]: Nothing to be done for 'all'.
+make[2]: Leaving directory '/home/khattar/Documents/mpich/src/mpl'
+Making all in src/openpa
+make[2]: Entering directory '/home/khattar/Documents/mpich/src/openpa'
+Making all in src
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/openpa/src'
+make  all-am
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/openpa/src'
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/openpa/src'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/openpa/src'
+Making all in test
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/openpa/test'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/openpa/test'
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/openpa'
+make[3]: Nothing to be done for 'all-am'.
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/openpa'
+make[2]: Leaving directory '/home/khattar/Documents/mpich/src/openpa'
+Making all in src/hwloc
+make[2]: Entering directory '/home/khattar/Documents/mpich/src/hwloc'
+Making all in include
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/hwloc/include'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc/include'
+Making all in hwloc
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/hwloc/hwloc'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc/hwloc'
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/hwloc'
+make[3]: Nothing to be done for 'all-am'.
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc'
+make[2]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc'
+Making all in src/mpi/romio
+make[2]: Entering directory '/home/khattar/Documents/mpich/src/mpi/romio'
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/mpi/romio'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/mpi/romio'
+make[2]: Leaving directory '/home/khattar/Documents/mpich/src/mpi/romio'
+Making all in src/pm/hydra
+make[2]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra'
+Making all in mpl
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/mpl'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/mpl'
+Making all in tools/topo/hwloc/hwloc
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc'
+Making all in include
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/include'
+make[4]: Nothing to be done for 'all'.
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/include'
+Making all in hwloc
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/hwloc'
+make[4]: Nothing to be done for 'all'.
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/hwloc'
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc'
+make[4]: Nothing to be done for 'all-am'.
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc'
+Making all in .
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra'
+make[2]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra'
+Making all in .
+make[2]: Entering directory '/home/khattar/Documents/mpich'
+make[2]: Leaving directory '/home/khattar/Documents/mpich'
+Making all in examples
+make[2]: Entering directory '/home/khattar/Documents/mpich/examples'
+make[2]: Nothing to be done for 'all'.
+make[2]: Leaving directory '/home/khattar/Documents/mpich/examples'
+make[1]: Leaving directory '/home/khattar/Documents/mpich'

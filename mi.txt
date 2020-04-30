@@ -1,0 +1,231 @@
+make  install-recursive
+make[1]: Entering directory '/home/khattar/Documents/mpich'
+Making install in src/mpl
+make[2]: Entering directory '/home/khattar/Documents/mpich/src/mpl'
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/mpl'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/mpl'
+make[2]: Leaving directory '/home/khattar/Documents/mpich/src/mpl'
+Making install in src/openpa
+make[2]: Entering directory '/home/khattar/Documents/mpich/src/openpa'
+Making install in src
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/openpa/src'
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/openpa/src'
+make[4]: Nothing to be done for 'install-exec-am'.
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/openpa/src'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/openpa/src'
+Making install in test
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/openpa/test'
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/openpa/test'
+make[4]: Nothing to be done for 'install-exec-am'.
+make[4]: Nothing to be done for 'install-data-am'.
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/openpa/test'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/openpa/test'
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/openpa'
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/openpa'
+make[4]: Nothing to be done for 'install-exec-am'.
+ /bin/mkdir -p '/home/khattar/mpich-install-new/lib/pkgconfig'
+ /usr/bin/install -c -m 644 openpa.pc '/home/khattar/mpich-install-new/lib/pkgconfig'
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/openpa'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/openpa'
+make[2]: Leaving directory '/home/khattar/Documents/mpich/src/openpa'
+Making install in src/hwloc
+make[2]: Entering directory '/home/khattar/Documents/mpich/src/hwloc'
+Making install in include
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/hwloc/include'
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/hwloc/include'
+make[4]: Nothing to be done for 'install-exec-am'.
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc/include'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc/include'
+Making install in hwloc
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/hwloc/hwloc'
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/hwloc/hwloc'
+make  install-exec-hook
+make[5]: Entering directory '/home/khattar/Documents/mpich/src/hwloc/hwloc'
+make[5]: Nothing to be done for 'install-exec-hook'.
+make[5]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc/hwloc'
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc/hwloc'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc/hwloc'
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/hwloc'
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/hwloc'
+make[4]: Nothing to be done for 'install-exec-am'.
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc'
+make[2]: Leaving directory '/home/khattar/Documents/mpich/src/hwloc'
+Making install in src/mpi/romio
+make[2]: Entering directory '/home/khattar/Documents/mpich/src/mpi/romio'
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/mpi/romio'
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/mpi/romio'
+ mkdir -p '/home/khattar/mpich-install-new/include'
+ /usr/bin/install -c -m 644 include/mpio.h include/mpiof.h '/home/khattar/mpich-install-new/include'
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/mpi/romio'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/mpi/romio'
+make[2]: Leaving directory '/home/khattar/Documents/mpich/src/mpi/romio'
+Making install in src/pm/hydra
+make[2]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra'
+Making install in mpl
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/mpl'
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/mpl'
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/mpl'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/mpl'
+Making install in tools/topo/hwloc/hwloc
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc'
+Making install in include
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/include'
+make[5]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/include'
+make[5]: Nothing to be done for 'install-exec-am'.
+make[5]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/include'
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/include'
+Making install in hwloc
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/hwloc'
+make[5]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/hwloc'
+make  install-exec-hook
+make[6]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/hwloc'
+make[6]: Nothing to be done for 'install-exec-hook'.
+make[6]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/hwloc'
+make[5]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/hwloc'
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc/hwloc'
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc'
+make[5]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc'
+make[5]: Nothing to be done for 'install-exec-am'.
+make[5]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc'
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra/tools/topo/hwloc/hwloc'
+Making install in .
+make[3]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra'
+make[4]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra'
+ mkdir -p '/home/khattar/mpich-install-new/bin'
+  /bin/bash ./libtool   --mode=install /usr/bin/install -c hydra_persist hydra_nameserver hydra_pmi_proxy mpiexec.hydra '/home/khattar/mpich-install-new/bin'
+libtool: install: /usr/bin/install -c hydra_persist /home/khattar/mpich-install-new/bin/hydra_persist
+libtool: install: /usr/bin/install -c hydra_nameserver /home/khattar/mpich-install-new/bin/hydra_nameserver
+libtool: install: /usr/bin/install -c hydra_pmi_proxy /home/khattar/mpich-install-new/bin/hydra_pmi_proxy
+libtool: install: /usr/bin/install -c mpiexec.hydra /home/khattar/mpich-install-new/bin/mpiexec.hydra
+make  install-exec-hook
+make[5]: Entering directory '/home/khattar/Documents/mpich/src/pm/hydra'
+if [ -x /home/khattar/mpich-install-new/bin/mpiexec.hydra ] ; then \
+    cd /home/khattar/mpich-install-new/bin && ln -f -s mpiexec.hydra mpiexec ; \
+    cd /home/khattar/mpich-install-new/bin && ln -f -s mpiexec.hydra mpirun ; \
+fi
+make[5]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra'
+make[4]: Nothing to be done for 'install-data-am'.
+make[4]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra'
+make[3]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra'
+make[2]: Leaving directory '/home/khattar/Documents/mpich/src/pm/hydra'
+Making install in .
+make[2]: Entering directory '/home/khattar/Documents/mpich'
+make[3]: Entering directory '/home/khattar/Documents/mpich'
+ mkdir -p '/home/khattar/mpich-install-new/lib'
+ /bin/bash ./libtool   --mode=install /usr/bin/install -c   lib/libmpi.la lib/libmpicxx.la '/home/khattar/mpich-install-new/lib'
+libtool: install: /usr/bin/install -c lib/.libs/libmpi.so.0.0.0 /home/khattar/mpich-install-new/lib/libmpi.so.0.0.0
+libtool: install: (cd /home/khattar/mpich-install-new/lib && { ln -s -f libmpi.so.0.0.0 libmpi.so.0 || { rm -f libmpi.so.0 && ln -s libmpi.so.0.0.0 libmpi.so.0; }; })
+libtool: install: (cd /home/khattar/mpich-install-new/lib && { ln -s -f libmpi.so.0.0.0 libmpi.so || { rm -f libmpi.so && ln -s libmpi.so.0.0.0 libmpi.so; }; })
+libtool: install: /usr/bin/install -c lib/.libs/libmpi.lai /home/khattar/mpich-install-new/lib/libmpi.la
+libtool: warning: relinking 'lib/libmpicxx.la'
+libtool: install: (cd /home/khattar/Documents/mpich; /bin/bash "/home/khattar/Documents/mpich/libtool"  --tag CXX --mode=relink g++ -O2 -version-info 0:0:0 -o lib/libmpicxx.la -rpath /home/khattar/mpich-install-new/lib src/binding/cxx/initcxx.lo lib/libmpi.la )
+libtool: relink: g++  -fPIC -DPIC -shared -nostdlib /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/7/crtbeginS.o  src/binding/cxx/.libs/initcxx.o   -Wl,-rpath -Wl,/home/khattar/mpich-install-new/lib -L/home/khattar/mpich-install-new/lib -lmpi -L/usr/lib/gcc/x86_64-linux-gnu/7 -L/usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/7/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/7/../../.. -lstdc++ -lm -lc -lgcc_s /usr/lib/gcc/x86_64-linux-gnu/7/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/crtn.o  -O2   -Wl,-soname -Wl,libmpicxx.so.0 -o lib/.libs/libmpicxx.so.0.0.0
+libtool: install: /usr/bin/install -c lib/.libs/libmpicxx.so.0.0.0T /home/khattar/mpich-install-new/lib/libmpicxx.so.0.0.0
+libtool: install: (cd /home/khattar/mpich-install-new/lib && { ln -s -f libmpicxx.so.0.0.0 libmpicxx.so.0 || { rm -f libmpicxx.so.0 && ln -s libmpicxx.so.0.0.0 libmpicxx.so.0; }; })
+libtool: install: (cd /home/khattar/mpich-install-new/lib && { ln -s -f libmpicxx.so.0.0.0 libmpicxx.so || { rm -f libmpicxx.so && ln -s libmpicxx.so.0.0.0 libmpicxx.so; }; })
+libtool: install: /usr/bin/install -c lib/.libs/libmpicxx.lai /home/khattar/mpich-install-new/lib/libmpicxx.la
+libtool: install: /usr/bin/install -c lib/.libs/libmpi.a /home/khattar/mpich-install-new/lib/libmpi.a
+libtool: install: chmod 644 /home/khattar/mpich-install-new/lib/libmpi.a
+libtool: install: ranlib /home/khattar/mpich-install-new/lib/libmpi.a
+libtool: install: /usr/bin/install -c lib/.libs/libmpicxx.a /home/khattar/mpich-install-new/lib/libmpicxx.a
+libtool: install: chmod 644 /home/khattar/mpich-install-new/lib/libmpicxx.a
+libtool: install: ranlib /home/khattar/mpich-install-new/lib/libmpicxx.a
+libtool: finish: PATH="/home/khattar/Documents/juleaN/julea/bld:/home/khattar/Documents/juleaN/julea/bld:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/sqlite-3.30.1-kypbwxdznhjtcn3ztk5einuwdkfmzcmm/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/readline-8.0-q26gw5xmhuo2cblnuv75gvtovmdzifh3/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/ncurses-6.2-ovaulzas2z7zexa5kyg3dw6cvkbp3lwj/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/lmdb-0.9.24-vb6bumglraxqd2bs26kd2job7tvofut5/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/glib-2.56.3-2uwesi7aikrh5txtewuzngqjqcihy7yg/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/python-3.7.6-mnz2ldvtvvqhvsblzssvojgzz7sqhbda/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/sqlite-3.30.1-kypbwxdznhjtcn3ztk5einuwdkfmzcmm/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/openssl-1.1.1e-4ovmm4qzjokfgjxyhgksywi6jqcrjmd6/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/expat-2.2.9-4k3wxqnz4xer6uo3vxcso5e5z6za33p4/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/perl-5.30.1-oazrru5ntcsj7wqznkj3bzznexch443g/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/gdbm-1.18.1-brz575boiettcekv4crxbul7krz6xqal/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/readline-8.0-q26gw5xmhuo2cblnuv75gvtovmdzifh3/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/pcre-8.43-7nvwa2qh3fvndpad7z2vtlhvnidgt73g/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/gettext-0.20.1-qbgzhas5ok233oosbbu3ep72bdspmiud/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/tar-1.32-bpudfnfnar2pgzbzhjjw6zwy5wsw7tsp/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/ncurses-6.2-ovaulzas2z7zexa5kyg3dw6cvkbp3lwj/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/libxml2-2.9.9-p7al6xvxp5r5r5fmzsgt3rgfukzjgqnr/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/xz-5.2.5-5k66uilgt44lidq74yweitxai4wg2aqy/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/libiconv-1.16-qzwr2r7npifuacfzi3abxfdkwoq2vlze/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/bzip2-1.0.8-m6oyueqqp22ydrjq4x2tcqsjtludc3un/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/pkgconf-1.6.3-ys6ba73fw3l2ps6mbew6ws2hjf4kxrd5/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/meson-0.53.2-27j6n24fwmofoffjqjtrqfvwtkfjuw4w/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/py-setuptools-41.4.0-yyj55zpzjijocjl3otoqcfdzwl372gcl/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/python-3.7.6-mnz2ldvtvvqhvsblzssvojgzz7sqhbda/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/sqlite-3.30.1-kypbwxdznhjtcn3ztk5einuwdkfmzcmm/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/openssl-1.1.1e-4ovmm4qzjokfgjxyhgksywi6jqcrjmd6/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/gettext-0.20.1-qbgzhas5ok233oosbbu3ep72bdspmiud/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/tar-1.32-bpudfnfnar2pgzbzhjjw6zwy5wsw7tsp/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/libxml2-2.9.9-p7al6xvxp5r5r5fmzsgt3rgfukzjgqnr/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/xz-5.2.5-5k66uilgt44lidq74yweitxai4wg2aqy/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/libiconv-1.16-qzwr2r7npifuacfzi3abxfdkwoq2vlze/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/gdbm-1.18.1-brz575boiettcekv4crxbul7krz6xqal/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/readline-8.0-q26gw5xmhuo2cblnuv75gvtovmdzifh3/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/ncurses-6.2-ovaulzas2z7zexa5kyg3dw6cvkbp3lwj/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/expat-2.2.9-4k3wxqnz4xer6uo3vxcso5e5z6za33p4/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/bzip2-1.0.8-m6oyueqqp22ydrjq4x2tcqsjtludc3un/bin:/home/khattar/Documents/juleaN/julea/dependencies/opt/spack/linux-ubuntu18.04-sandybridge/gcc-7.4.0/ninja-1.10.0-shnueuger66bqbkxbypp45daeg54ojj7/bin:/home/khattar/Documents/juleaN/julea/dependencies/bin:/home/khattar/Documents/juleaN/julea/bld:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin" ldconfig -n /home/khattar/mpich-install-new/lib
+----------------------------------------------------------------------
+Libraries have been installed in:
+   /home/khattar/mpich-install-new/lib
+
+If you ever happen to want to link against installed libraries
+in a given directory, LIBDIR, you must either use libtool, and
+specify the full pathname of the library, or use the '-LLIBDIR'
+flag during linking and do at least one of the following:
+   - add LIBDIR to the 'LD_LIBRARY_PATH' environment variable
+     during execution
+   - add LIBDIR to the 'LD_RUN_PATH' environment variable
+     during linking
+   - use the '-Wl,-rpath -Wl,LIBDIR' linker flag
+   - have your system administrator add LIBDIR to '/etc/ld.so.conf'
+
+See any operating system documentation about shared libraries for
+more information, such as the ld(1) and ld.so(8) manual pages.
+----------------------------------------------------------------------
+ mkdir -p '/home/khattar/mpich-install-new/bin'
+  /bin/bash ./libtool   --mode=install /usr/bin/install -c src/env/mpichversion src/env/mpivars '/home/khattar/mpich-install-new/bin'
+libtool: install: /usr/bin/install -c src/env/.libs/mpichversion /home/khattar/mpich-install-new/bin/mpichversion
+libtool: install: /usr/bin/install -c src/env/.libs/mpivars /home/khattar/mpich-install-new/bin/mpivars
+ mkdir -p '/home/khattar/mpich-install-new/bin'
+ /usr/bin/install -c src/env/mpicc src/env/parkill src/env/mpicxx '/home/khattar/mpich-install-new/bin'
+make  install-exec-hook
+make[4]: Entering directory '/home/khattar/Documents/mpich'
+for e in /home/khattar/mpich-install-new/bin/mpicc /home/khattar/mpich-install-new/bin/mpicxx \
+	/home/khattar/mpich-install-new/bin/mpif77 /home/khattar/mpich-install-new/bin/mpifort ; do \
+	if test -e ${e} ; then \
+		sed -e 's|__PREFIX_TO_BE_FILLED_AT_INSTALL_TIME__|/home/khattar/mpich-install-new|g' \
+			-e 's|__EXEC_PREFIX_TO_BE_FILLED_AT_INSTALL_TIME__|/home/khattar/mpich-install-new|g' \
+			-e 's|__SYSCONFDIR_TO_BE_FILLED_AT_INSTALL_TIME__|/home/khattar/mpich-install-new/etc|g' \
+			-e 's|__INCLUDEDIR_TO_BE_FILLED_AT_INSTALL_TIME__|/home/khattar/mpich-install-new/include|g' \
+			-e 's|__LIBDIR_TO_BE_FILLED_AT_INSTALL_TIME__|/home/khattar/mpich-install-new/lib|g' ${e} > ${e}.tmp ; \
+		/usr/bin/install -c ${e}.tmp ${e} ; \
+		rm -f ${e}.tmp ; \
+	fi ; \
+done ; \
+if test -e /home/khattar/mpich-install-new/bin/mpicxx ; then \
+	if test "mpicxx" != "mpic++" ; then \
+		cd /home/khattar/mpich-install-new/bin && ln -f -s mpicxx mpic++ ; \
+	fi ; \
+fi ; \
+if test -e /home/khattar/mpich-install-new/bin/mpifort ; then \
+	if test "mpifort" != "mpif90" ; then \
+		cd /home/khattar/mpich-install-new/bin && ln -f -s mpifort mpif90 ; \
+	fi ; \
+fi ; \
+if test -e /home/khattar/mpich-install-new/bin/mpifort -a ! -e /home/khattar/mpich-install-new/bin/mpif77 ; then \
+	if test "mpifort" != "mpif77" ; then \
+		cd /home/khattar/mpich-install-new/bin && ln -f -s mpifort mpif77 ; \
+	fi ; \
+fi ; \
+if test -e /home/khattar/mpich-install-new/lib/libmpi.so ; then \
+	if test "mpi" != "mpl" ; then \
+		cd /home/khattar/mpich-install-new/lib && ln -f -s libmpi.so libmpl.so ; \
+	fi ; \
+	if test "mpi" != "opa" ; then \
+		cd /home/khattar/mpich-install-new/lib && ln -f -s libmpi.so libopa.so ; \
+	fi ; \
+	if test "mpi" != "mpich" ; then \
+		cd /home/khattar/mpich-install-new/lib && ln -f -s libmpi.so libmpich.so ; \
+	fi ; \
+fi ; \
+if test -e /home/khattar/mpich-install-new/lib/libmpifort.so ; then \
+	if test "mpifort" != "fmpich" ; then \
+		cd /home/khattar/mpich-install-new/lib && ln -f -s libmpifort.so libfmpich.so ; \
+	fi ; \
+	if test "mpifort" != "mpichf90" ; then \
+		cd /home/khattar/mpich-install-new/lib && ln -f -s libmpifort.so libmpichf90.so ; \
+	fi ; \
+fi ; \
+if test -e /home/khattar/mpich-install-new/lib/libmpicxx.so ; then \
+	if test "mpicxx" != "mpichcxx" ; then \
+		cd /home/khattar/mpich-install-new/lib && ln -f -s libmpicxx.so libmpichcxx.so ; \
+	fi ; \
+fi
+make[4]: Leaving directory '/home/khattar/Documents/mpich'
+if [ ! -e /home/khattar/mpich-install-new/share/doc/mpich ] ; then mkdir -p /home/khattar/mpich-install-new/share/doc/mpich ; fi
+if [ -s ./doc/userguide/user.pdf ] ; then /usr/bin/install -c -m 644 ./doc/userguide/user.pdf /home/khattar/mpich-install-new/share/doc/mpich/user.pdf ; fi
+if [ -s ./doc/installguide/install.pdf ] ; then /usr/bin/install -c -m 644 ./doc/installguide/install.pdf /home/khattar/mpich-install-new/share/doc/mpich/install.pdf ; fi
+if [ -s ./doc/logging/logging.pdf ] ; then /usr/bin/install -c -m 644 ./doc/logging/logging.pdf /home/khattar/mpich-install-new/share/doc/mpich/logging.pdf ; fi
+ mkdir -p '/home/khattar/mpich-install-new/include'
+ /usr/bin/install -c -m 644 src/binding/cxx/mpicxx.h src/include/mpi.h '/home/khattar/mpich-install-new/include'
+ mkdir -p '/home/khattar/mpich-install-new/lib/pkgconfig'
+ /usr/bin/install -c -m 644 src/packaging/pkgconfig/mpich.pc '/home/khattar/mpich-install-new/lib/pkgconfig'
+make[3]: Leaving directory '/home/khattar/Documents/mpich'
+make[2]: Leaving directory '/home/khattar/Documents/mpich'
+Making install in examples
+make[2]: Entering directory '/home/khattar/Documents/mpich/examples'
+make[3]: Entering directory '/home/khattar/Documents/mpich/examples'
+make[3]: Nothing to be done for 'install-exec-am'.
+make[3]: Nothing to be done for 'install-data-am'.
+make[3]: Leaving directory '/home/khattar/Documents/mpich/examples'
+make[2]: Leaving directory '/home/khattar/Documents/mpich/examples'
+make[1]: Leaving directory '/home/khattar/Documents/mpich'
