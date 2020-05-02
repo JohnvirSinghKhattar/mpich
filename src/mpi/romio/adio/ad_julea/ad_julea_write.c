@@ -20,16 +20,14 @@ void ADIOI_JULEA_WriteContig(ADIO_File fd, const void *buf, int count,
     ADIO_Offset bytes_xfered = 0;
     size_t wr_count;
     static char myname[] = "ADIOI_JULEA_WRITECONTIG";
-    char *p;
 
-    /* if (count == 0) {
+    if (count == 0) {
         err = 0;
-        goto fn_exit;
-    } */
+    } 
     MPI_Type_size_x(datatype, &datatype_size);
     len = datatype_size * (ADIO_Offset) count;
 
     JBatch* batch = j_batch_new_for_template(J_SEMANTICS_TEMPLATE_DEFAULT);
-    j_object_write(fd->fs_ptr, buf, len, offset, 0, batch);
+    j_object_write(fd->fs_ptr, buf, len, offset, &datatype_size, batch);
     j_batch_execute(batch);
 }
