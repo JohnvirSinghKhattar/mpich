@@ -30,7 +30,7 @@ void ADIOI_JULEA_ReadContig(ADIO_File fd, void *buf, int count,
 
     MPI_Type_size_x(datatype, &datatype_size);
     len = datatype_size * (ADIO_Offset) count;
-    guint64* bytes_written;
+    guint64* bytes_written = 0;
     JBatch* batch = j_batch_new_for_template(J_SEMANTICS_TEMPLATE_DEFAULT);
     j_object_read(fd->fs_ptr, buf, len + 1, offset, bytes_written, batch);
     j_batch_execute(batch);
