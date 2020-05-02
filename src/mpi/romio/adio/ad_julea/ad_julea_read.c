@@ -24,15 +24,14 @@ void ADIOI_JULEA_ReadContig(ADIO_File fd, void *buf, int count,
     static char myname[] = "ADIOI_JULEA_READCONTIG";
     char *p;
 
-   /* if (count == 0) {
+   if (count == 0) {
         err = 0;
-        goto fn_exit;
-    } */
+    }
 
     MPI_Type_size_x(datatype, &datatype_size);
     len = datatype_size * (ADIO_Offset) count;
-
+    guint64* bytes_written;
     JBatch* batch = j_batch_new_for_template(J_SEMANTICS_TEMPLATE_DEFAULT);
-    j_object_read(fd->fs_ptr, "ad_julea", len + 1, 0, 0, batch); //vorher: (fd->fs_ptr, ad_julea, len + 1, 0, &nbytes, batch)
+    j_object_read(fd->fs_ptr, buf, len + 1, offset, bytes_written, batch);
     j_batch_execute(batch);
 }
