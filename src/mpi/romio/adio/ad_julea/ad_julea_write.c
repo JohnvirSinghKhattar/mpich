@@ -29,5 +29,6 @@ void ADIOI_JULEA_WriteContig(ADIO_File fd, const void *buf, int count,
     guint64 bytes_written = 0;
     JBatch* batch = j_batch_new_for_template(J_SEMANTICS_TEMPLATE_DEFAULT);
     j_object_write(fd->fs_ptr, buf, len, offset, &bytes_written, batch);
+    printf(fd->fs_ptr);
     j_batch_execute(batch);
 }
