@@ -32,7 +32,7 @@ jobs:
             --object-backend=posix --object-component=server --object-path=/tmp/julea/posix \
             --kv-backend=lmdb --kv-component=server --kv-path=/tmp/julea/lmdb \
             --db-backend=sqlite --db-component=server --db-path=/tmp/julea/sqlite
-          cd 
+          cd ..
           ./autogen.sh
           export PKG_CONFIG_PATH=$JULEA_PREFIX/lib/pkg-config && 
           ./configure --disable-fortan --prefix=${GITHUB_WORKSPACE}/install --with-device=ch3 --with-file-system=ufs+julea
