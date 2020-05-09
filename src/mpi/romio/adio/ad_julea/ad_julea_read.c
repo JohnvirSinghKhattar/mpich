@@ -27,7 +27,7 @@ void ADIOI_JULEA_ReadContig(ADIO_File fd, void *buf, int count,
    if (count == 0) {
         err = 0;
     }
-
+    printf("hier ist der read")
     MPI_Type_size_x(datatype, &datatype_size);
     len = datatype_size * (ADIO_Offset) count;
     guint64 bytes_written = 0;
