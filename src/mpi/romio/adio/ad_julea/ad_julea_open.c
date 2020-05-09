@@ -16,9 +16,9 @@ void ADIOI_JULEA_Open(ADIO_File fd, int *error_code)        //Open Methode laut 
                                                         //filename über die übergebene File
     j_object_create(object, batch);                     //Objekt wird auf Festplatte erstellt
     j_batch_execute(batch);                             //Batch wird ausgeführt
- 
+    printf("hier ist der open")
     fd->fs_ptr = object;                                //Objekt wird über den Pointer fs_ptr referenziert
-
+    
     if (fd->fd_sys == -1) {
         *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
     } else
