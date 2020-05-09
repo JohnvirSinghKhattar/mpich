@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - name: Checkout submodules
-    - uses: textbook/git-checkout-submodule-action@master
+      uses: textbook/git-checkout-submodule-action@master
     - uses: actions/checkout@v2
     - name: configure
       run:  |
