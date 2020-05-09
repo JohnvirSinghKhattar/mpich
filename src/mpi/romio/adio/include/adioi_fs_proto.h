@@ -65,7 +65,6 @@ extern struct ADIOI_Fns_struct ADIO_DAOS_operations;
 #endif
 
 #ifdef ROMIO_JULEA
-/* prototypes are in adio/ad_daos/ad_daos.h */
 extern struct ADIOI_Fns_struct ADIO_JULEA_operations;
 #endif
 
