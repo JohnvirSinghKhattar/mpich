@@ -23,7 +23,8 @@ void ADIOI_JULEA_WriteContig(ADIO_File fd, const void *buf, int count,
 
     if (count == 0) {
         err = 0;
-    } 
+    }
+    printf("hier ist der write")
     MPI_Type_size_x(datatype, &datatype_size);
     len = datatype_size * (ADIO_Offset) count;
     guint64 bytes_written = 0;
