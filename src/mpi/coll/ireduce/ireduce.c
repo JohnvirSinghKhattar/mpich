@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2010 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -73,13 +72,14 @@ cvars:
     - name        : MPIR_CVAR_IREDUCE_INTRA_ALGORITHM
       category    : COLLECTIVE
       type        : enum
-      default     : sched_auto
+      default     : auto
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select ireduce algorithm
-        sched_auto                  - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
+        sched_auto - Internal algorithm selection for sched-based algorithms
         sched_smp                   - Force smp algorithm
         sched_binomial              - Force binomial algorithm
         sched_reduce_scatter_gather - Force reduce scatter gather algorithm
@@ -89,13 +89,14 @@ cvars:
     - name        : MPIR_CVAR_IREDUCE_INTER_ALGORITHM
       category    : COLLECTIVE
       type        : enum
-      default     : sched_auto
+      default     : auto
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select ireduce algorithm
-        sched_auto                     - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
+        sched_auto - Internal algorithm selection for sched-based algorithms
         sched_local_reduce_remote_send - Force local-reduce-remote-send algorithm
 
     - name        : MPIR_CVAR_IREDUCE_DEVICE_COLLECTIVE
@@ -135,6 +136,88 @@ int MPI_Ireduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype data
 #ifndef MPICH_MPI_FROM_PMPI
 #undef MPI_Ireduce
 #define MPI_Ireduce PMPI_Ireduce
+
+
+int MPIR_Ireduce_allcomm_auto(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
+                              MPI_Op op, int root, MPIR_Comm * comm_ptr, MPIR_Request ** request)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_Csel_coll_sig_s coll_sig = {
+        .coll_type = MPIR_CSEL_COLL_TYPE__IREDUCE,
+        .comm_ptr = comm_ptr,
+
+        .u.ireduce.sendbuf = sendbuf,
+        .u.ireduce.recvbuf = recvbuf,
+        .u.ireduce.count = count,
+        .u.ireduce.datatype = datatype,
+        .u.ireduce.op = op,
+        .u.ireduce.root = root,
+    };
+
+    MPII_Csel_container_s *cnt = MPIR_Csel_search(comm_ptr->csel_comm, coll_sig);
+    MPIR_Assert(cnt);
+
+    switch (cnt->id) {
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ireduce_intra_gentran_tree:
+            mpi_errno =
+                MPIR_Ireduce_intra_gentran_tree(sendbuf, recvbuf, count, datatype, op, root,
+                                                comm_ptr,
+                                                cnt->u.ireduce.intra_gentran_tree.tree_type,
+                                                cnt->u.ireduce.intra_gentran_tree.k,
+                                                cnt->u.ireduce.intra_gentran_tree.chunk_size,
+                                                cnt->u.ireduce.intra_gentran_tree.buffer_per_child,
+                                                request);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ireduce_intra_gentran_ring:
+            mpi_errno =
+                MPIR_Ireduce_intra_gentran_ring(sendbuf, recvbuf, count, datatype, op, root,
+                                                comm_ptr,
+                                                cnt->u.ireduce.intra_gentran_ring.chunk_size,
+                                                cnt->u.ireduce.intra_gentran_ring.buffer_per_child,
+                                                request);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ireduce_intra_sched_auto:
+            MPII_SCHED_WRAPPER(MPIR_Ireduce_intra_sched_auto, comm_ptr, request, sendbuf, recvbuf,
+                               count, datatype, op, root);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ireduce_intra_sched_binomial:
+            MPII_SCHED_WRAPPER(MPIR_Ireduce_intra_sched_binomial, comm_ptr, request, sendbuf,
+                               recvbuf, count, datatype, op, root);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ireduce_intra_sched_reduce_scatter_gather:
+            MPII_SCHED_WRAPPER(MPIR_Ireduce_intra_sched_reduce_scatter_gather, comm_ptr, request,
+                               sendbuf, recvbuf, count, datatype, op, root);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ireduce_intra_sched_smp:
+            MPII_SCHED_WRAPPER(MPIR_Ireduce_intra_sched_smp, comm_ptr, request, sendbuf, recvbuf,
+                               count, datatype, op, root);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ireduce_inter_sched_auto:
+            MPII_SCHED_WRAPPER(MPIR_Ireduce_inter_sched_auto, comm_ptr, request, sendbuf, recvbuf,
+                               count, datatype, op, root);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ireduce_inter_sched_local_reduce_remote_send:
+            MPII_SCHED_WRAPPER(MPIR_Ireduce_inter_sched_local_reduce_remote_send, comm_ptr, request,
+                               sendbuf, recvbuf, count, datatype, op, root);
+            break;
+
+        default:
+            MPIR_Assert(0);
+    }
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
 
 int MPIR_Ireduce_intra_sched_auto(const void *sendbuf, void *recvbuf, int count,
                                   MPI_Datatype datatype, MPI_Op op, int root, MPIR_Comm * comm_ptr,
@@ -223,6 +306,11 @@ int MPIR_Ireduce_impl(const void *sendbuf, void *recvbuf, int count,
     if (comm_ptr->comm_kind == MPIR_COMM_KIND__INTRACOMM) {
         switch (MPIR_CVAR_IREDUCE_INTRA_ALGORITHM) {
             case MPIR_CVAR_IREDUCE_INTRA_ALGORITHM_gentran_tree:
+                /*Only knomial_1 tree supports non-commutative operations */
+                MPII_COLLECTIVE_FALLBACK_CHECK(comm_ptr->rank, MPIR_Op_is_commutative(op) ||
+                                               MPIR_Ireduce_tree_type == MPIR_TREE_TYPE_KNOMIAL_1,
+                                               mpi_errno,
+                                               "Ireduce gentran_tree cannot be applied.\n");
                 mpi_errno =
                     MPIR_Ireduce_intra_gentran_tree(sendbuf, recvbuf, count, datatype, op, root,
                                                     comm_ptr, MPIR_Ireduce_tree_type,
@@ -260,6 +348,12 @@ int MPIR_Ireduce_impl(const void *sendbuf, void *recvbuf, int count,
                                    recvbuf, count, datatype, op, root);
                 break;
 
+            case MPIR_CVAR_IREDUCE_INTRA_ALGORITHM_auto:
+                mpi_errno =
+                    MPIR_Ireduce_allcomm_auto(sendbuf, recvbuf, count, datatype, op, root, comm_ptr,
+                                              request);
+                break;
+
             default:
                 MPIR_Assert(0);
         }
@@ -275,12 +369,23 @@ int MPIR_Ireduce_impl(const void *sendbuf, void *recvbuf, int count,
                                    recvbuf, count, datatype, op, root);
                 break;
 
+            case MPIR_CVAR_IREDUCE_INTER_ALGORITHM_auto:
+                mpi_errno =
+                    MPIR_Ireduce_allcomm_auto(sendbuf, recvbuf, count, datatype, op, root, comm_ptr,
+                                              request);
+                break;
+
             default:
                 MPIR_Assert(0);
         }
     }
 
     MPIR_ERR_CHECK(mpi_errno);
+    goto fn_exit;
+
+  fallback:
+    mpi_errno =
+        MPIR_Ireduce_allcomm_auto(sendbuf, recvbuf, count, datatype, op, root, comm_ptr, request);
 
   fn_exit:
     return mpi_errno;
@@ -339,7 +444,6 @@ int MPI_Ireduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype data
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_IREDUCE);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_ENTER(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_IREDUCE);
 
     /* Validate parameters, especially handles needing to be converted */
@@ -430,7 +534,6 @@ int MPI_Ireduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype data
   fn_exit:
     MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_IREDUCE);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_EXIT(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     return mpi_errno;
 
   fn_fail:

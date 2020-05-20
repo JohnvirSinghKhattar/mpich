@@ -1,20 +1,15 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef OFI_IMPL_H_INCLUDED
 #define OFI_IMPL_H_INCLUDED
 
 #include <mpidimpl.h>
 #include "ofi_types.h"
 #include "mpidch4r.h"
-#include "mpidig.h"
+#include "mpidig_am.h"
 #include "ch4_impl.h"
 #include "ofi_iovec_util.h"
 
@@ -99,10 +94,79 @@ int MPIDI_OFI_progress(int vci, int blocking);
          * for recursive locking in more than one lock (currently limited
          * to one due to scalar TLS counter), this lock yielding
          * operation can be avoided since we are inside a finite loop. */\
-        MPID_THREAD_CS_EXIT(VCI, MPIDI_global.vci_lock);         \
+        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);         \
         mpi_errno = MPIDI_OFI_retry_progress();                      \
-        MPID_THREAD_CS_ENTER(VCI, MPIDI_global.vci_lock);        \
+        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);        \
         MPIR_ERR_CHECK(mpi_errno);                               \
+        _retry--;                                           \
+    } while (_ret == -FI_EAGAIN);                           \
+    } while (0)
+
+/* per-vci macros - we'll transition into these macros once the locks are
+ * moved down to ofi-layer */
+#define MPIDI_OFI_VCI_PROGRESS(vci_)                                    \
+    do {                                                                \
+        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci_).lock);                \
+        mpi_errno = MPIDI_OFI_progress(vci_, 0);                        \
+        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci_).lock);                 \
+        MPIR_ERR_CHECK(mpi_errno);                                      \
+        MPID_THREAD_CS_YIELD(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX); \
+    } while (0)
+
+#define MPIDI_OFI_VCI_PROGRESS_WHILE(vci_, cond)                            \
+    do {                                                                    \
+        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci_).lock);                    \
+        while (cond) {                                                      \
+            mpi_errno = MPIDI_OFI_progress(vci_, 0);                        \
+            if (mpi_errno) {                                                \
+                MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci_).lock);             \
+                MPIR_ERR_POP(mpi_errno);                                    \
+            }                                                               \
+            MPID_THREAD_CS_YIELD(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX); \
+        }                                                                   \
+        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci_).lock);                     \
+    } while (0)
+
+#define MPIDI_OFI_VCI_CALL(FUNC,vci_,STR)                   \
+    do {                                                    \
+        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci_).lock);    \
+        ssize_t _ret = FUNC;                                \
+        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci_).lock);     \
+        MPIDI_OFI_ERR(_ret<0,                               \
+                              mpi_errno,                    \
+                              MPI_ERR_OTHER,                \
+                              "**ofid_"#STR,                \
+                              "**ofid_"#STR" %s %d %s %s",  \
+                              __SHORT_FILE__,               \
+                              __LINE__,                     \
+                              __func__,                     \
+                              fi_strerror(-_ret));          \
+    } while (0)
+
+#define MPIDI_OFI_VCI_CALL_RETRY(FUNC,vci_,STR,EAGAIN)      \
+    do {                                                    \
+    ssize_t _ret;                                           \
+    int _retry = MPIR_CVAR_CH4_OFI_MAX_EAGAIN_RETRY;        \
+    do {                                                    \
+        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci_).lock);    \
+        _ret = FUNC;                                        \
+        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci_).lock);     \
+        if (likely(_ret==0)) break;                         \
+        MPIDI_OFI_ERR(_ret!=-FI_EAGAIN,                     \
+                              mpi_errno,                    \
+                              MPI_ERR_OTHER,                \
+                              "**ofid_"#STR,                \
+                              "**ofid_"#STR" %s %d %s %s",  \
+                              __SHORT_FILE__,               \
+                              __LINE__,                     \
+                              __func__,                     \
+                              fi_strerror(-_ret));          \
+        MPIR_ERR_CHKANDJUMP(_retry == 0 && EAGAIN,          \
+                            mpi_errno,                      \
+                            MPIX_ERR_EAGAIN,                \
+                            "**eagain");                    \
+        mpi_errno = MPID_Progress_test();                   \
+        MPIR_ERR_CHECK(mpi_errno);                          \
         _retry--;                                           \
     } while (_ret == -FI_EAGAIN);                           \
     } while (0)
@@ -116,7 +180,7 @@ int MPIDI_OFI_progress(int vci, int blocking);
   do                                                            \
     {                                                           \
       str_errno = FUNC;                                         \
-      MPIDI_OFI_ERR(str_errno!=MPL_STR_SUCCESS,        \
+      MPIDI_OFI_ERR(str_errno!=MPL_SUCCESS,        \
                             mpi_errno,                          \
                             MPI_ERR_OTHER,                      \
                             "**"#STR,                           \
@@ -190,9 +254,8 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_cntr_incr()
 /* Externs:  see util.c for definition */
 int MPIDI_OFI_handle_cq_error_util(int ep_idx, ssize_t ret);
 int MPIDI_OFI_retry_progress(void);
-int MPIDI_OFI_control_handler(int handler_id, void *am_hdr,
-                              void **data, size_t * data_sz, int is_local, int *is_contig,
-                              MPIR_Request ** req);
+int MPIDI_OFI_control_handler(int handler_id, void *am_hdr, void *data, MPI_Aint data_sz,
+                              int is_local, int is_async, MPIR_Request ** req);
 int MPIDI_OFI_control_dispatch(void *buf);
 void MPIDI_OFI_index_datatypes(void);
 int MPIDI_OFI_mr_key_allocator_init(void);
@@ -230,12 +293,13 @@ MPL_STATIC_INLINE_PREFIX MPIDI_OFI_win_request_t *MPIDI_OFI_win_request_create(v
 {
     MPIDI_OFI_win_request_t *winreq;
     winreq = MPL_malloc(sizeof(*winreq), MPL_MEM_OTHER);
+    winreq->noncontig.iov_store = NULL; /* not used by put/get opreations */
     return winreq;
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_win_request_complete(MPIDI_OFI_win_request_t * winreq)
 {
-    MPL_free(winreq->noncontig);
+    MPL_free(winreq->noncontig.iov_store);
     MPL_free(winreq);
 }
 
@@ -367,7 +431,7 @@ MPL_STATIC_INLINE_PREFIX size_t MPIDI_OFI_count_iov(int dt_count,       /* numbe
     do {
         MPI_Aint tmp_size = (rem_size > max_pipe) ? max_pipe : rem_size;
 
-        MPIR_Typerep_iov_len(NULL, dt_count, dt_datatype, 0, tmp_size, &num_iov);
+        MPIR_Typerep_iov_len(dt_count, dt_datatype, tmp_size, &num_iov);
         total_iov += num_iov;
 
         rem_size -= tmp_size;
@@ -377,36 +441,5 @@ MPL_STATIC_INLINE_PREFIX size_t MPIDI_OFI_count_iov(int dt_count,       /* numbe
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_COUNT_IOV);
     return total_iov;
 }
-
-/* Find the nearest length of iov that meets alignment requirement */
-MPL_STATIC_INLINE_PREFIX size_t MPIDI_OFI_align_iov_len(size_t len)
-{
-    size_t pad = MPIDI_OFI_IOVEC_ALIGN - 1;
-    size_t mask = ~pad;
-
-    return (len + pad) & mask;
-}
-
-/* Find the minimum address that is >= ptr && meets alignment requirement */
-MPL_STATIC_INLINE_PREFIX void *MPIDI_OFI_aligned_next_iov(void *ptr)
-{
-    size_t aligned_iov = MPIDI_OFI_align_iov_len((size_t) ptr);
-    return (void *) (uintptr_t) aligned_iov;
-}
-
-MPL_STATIC_INLINE_PREFIX struct iovec *MPIDI_OFI_request_util_iov(MPIR_Request * req)
-{
-#if MPIDI_OFI_IOVEC_ALIGN <= SIZEOF_VOID_P
-    return &MPIDI_OFI_REQUEST(req, util.iov);
-#else
-    return (struct iovec *) MPIDI_OFI_aligned_next_iov(&MPIDI_OFI_REQUEST(req, util.iov_store));
-#endif
-}
-
-/* Make sure `p` is properly aligned */
-#define MPIDI_OFI_ASSERT_IOVEC_ALIGN(p)                                 \
-    do {                                                                \
-        MPIR_Assert((((uintptr_t)(void *) p) & (MPIDI_OFI_IOVEC_ALIGN - 1)) == 0); \
-    } while (0)
 
 #endif /* OFI_IMPL_H_INCLUDED */

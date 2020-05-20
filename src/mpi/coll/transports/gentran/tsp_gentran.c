@@ -1,11 +1,6 @@
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2017 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -417,13 +412,13 @@ int MPII_Genutil_sched_start(MPII_Genutil_sched_t * sched, MPIR_Comm * comm, MPI
 
     if (unlikely(sched->total_vtcs == 0)) {
         MPII_Genutil_sched_free(sched);
-        MPID_Request_complete(reqp);
+        MPIR_Request_complete(reqp);
         goto fn_exit;
     }
     /* Kick start progress on this collective's schedule */
     mpi_errno = MPII_Genutil_sched_poke(sched, &is_complete, &made_progress);
     if (is_complete) {
-        MPID_Request_complete(reqp);
+        MPIR_Request_complete(reqp);
         goto fn_exit;
     }
 

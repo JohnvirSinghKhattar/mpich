@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -99,7 +97,7 @@ struct pollinfo {
 #endif
     union {
         struct {
-            MPL_IOV *ptr;
+            struct iovec *ptr;
             int count;
             int offset;
         } iov;
@@ -114,7 +112,7 @@ struct pollinfo {
     MPIDI_CH3I_Sock_progress_update_func_t read_progress_update_fn;
     union {
         struct {
-            MPL_IOV *ptr;
+            struct iovec *ptr;
             int count;
             int offset;
         } iov;
@@ -207,7 +205,7 @@ static int MPIDI_CH3I_Socki_os_to_mpi_errno(struct pollinfo *pollinfo,
                                             int os_errno, const char *fcname, int line,
                                             int *conn_failed);
 
-static int MPIDI_CH3I_Socki_adjust_iov(ssize_t nb, MPL_IOV * const iov,
+static int MPIDI_CH3I_Socki_adjust_iov(ssize_t nb, struct iovec * const iov,
                                        const int count, int *const offsetp);
 
 static int MPIDI_CH3I_Socki_sock_alloc(struct MPIDI_CH3I_Sock_set *sock_set,
@@ -709,24 +707,24 @@ static int MPIDI_CH3I_Socki_os_to_mpi_errno(struct pollinfo *pollinfo, int os_er
  * values.  If the iovec has been consumed, return
  * true; otherwise return false.
  *
- * The input is an iov (MPL_IOV is just an iov) and the offset into which
+ * The input is an iov (struct iovec is just an iov) and the offset into which
  * to start (start with entry iov[*offsetp]) and remove nb bytes from the iov.
  * The use of the offsetp term allows use to remove values from the iov without
  * making a copy to shift down elements when only part of the iov is
  * consumed.
  */
-static int MPIDI_CH3I_Socki_adjust_iov(ssize_t nb, MPL_IOV * const iov, const int count,
+static int MPIDI_CH3I_Socki_adjust_iov(ssize_t nb, struct iovec * const iov, const int count,
                                        int *const offsetp)
 {
     int offset = *offsetp;
 
     while (offset < count) {
-        if (iov[offset].MPL_IOV_LEN <= nb) {
-            nb -= iov[offset].MPL_IOV_LEN;
+        if (iov[offset].iov_len <= nb) {
+            nb -= iov[offset].iov_len;
             offset++;
         } else {
-            iov[offset].MPL_IOV_BUF = (char *) iov[offset].MPL_IOV_BUF + nb;
-            iov[offset].MPL_IOV_LEN -= nb;
+            iov[offset].iov_base = (char *) iov[offset].iov_base + nb;
+            iov[offset].iov_len -= nb;
             *offsetp = offset;
             return FALSE;
         }
@@ -1957,7 +1955,7 @@ int MPIDI_CH3I_Sock_post_read(struct MPIDI_CH3I_Sock *sock, void *buf, size_t mi
 /* end MPIDI_CH3I_Sock_post_read() */
 
 
-int MPIDI_CH3I_Sock_post_readv(struct MPIDI_CH3I_Sock *sock, MPL_IOV * iov, int iov_n,
+int MPIDI_CH3I_Sock_post_readv(struct MPIDI_CH3I_Sock *sock, struct iovec * iov, int iov_n,
                                MPIDI_CH3I_Sock_progress_update_func_t fn)
 {
     struct pollfd *pollfd;
@@ -2053,7 +2051,7 @@ int MPIDI_CH3I_Sock_post_write(struct MPIDI_CH3I_Sock *sock, void *buf, size_t m
 /* end MPIDI_CH3I_Sock_post_write() */
 
 
-int MPIDI_CH3I_Sock_post_writev(struct MPIDI_CH3I_Sock *sock, MPL_IOV * iov, int iov_n,
+int MPIDI_CH3I_Sock_post_writev(struct MPIDI_CH3I_Sock *sock, struct iovec * iov, int iov_n,
                                 MPIDI_CH3I_Sock_progress_update_func_t fn)
 {
     struct pollfd *pollfd;
@@ -2508,7 +2506,7 @@ int MPIDI_CH3I_Sock_read(MPIDI_CH3I_Sock_t sock, void *buf, size_t len, size_t *
 /* end MPIDI_CH3I_Sock_read() */
 
 
-int MPIDI_CH3I_Sock_readv(MPIDI_CH3I_Sock_t sock, MPL_IOV * iov, int iov_n, size_t * num_read)
+int MPIDI_CH3I_Sock_readv(MPIDI_CH3I_Sock_t sock, struct iovec * iov, int iov_n, size_t * num_read)
 {
     struct pollfd *pollfd;
     struct pollinfo *pollinfo;
@@ -2682,7 +2680,7 @@ int MPIDI_CH3I_Sock_write(MPIDI_CH3I_Sock_t sock, void *buf, size_t len, size_t 
 /* end MPIDI_CH3I_Sock_write() */
 
 
-int MPIDI_CH3I_Sock_writev(MPIDI_CH3I_Sock_t sock, MPL_IOV * iov, int iov_n, size_t * num_written)
+int MPIDI_CH3I_Sock_writev(MPIDI_CH3I_Sock_t sock, struct iovec * iov, int iov_n, size_t * num_written)
 {
     struct pollinfo *pollinfo;
     ssize_t nb;
@@ -3200,83 +3198,69 @@ int MPIDI_CH3I_Sock_wait(struct MPIDI_CH3I_Sock_set *sock_set, int millisecond_t
         }
 
         for (;;) {
-#	    ifndef MPICH_IS_THREADED
-            {
+            if (!MPIR_IS_THREADED) {
                 MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_POLL);
                 n_fds = poll(sock_set->pollfds, sock_set->poll_array_elems, millisecond_timeout);
                 MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_POLL);
-            }
-#	    else /* MPICH_IS_THREADED */
-            {
-                /* If we've enabled runtime checking of the thread level,
-                 * then test for that and if we are *not* multithreaded,
-                 * just use the same code as above.  Otherwise, use
-                 * multithreaded code (and we don't then need the
-                 * MPIR_THREAD_CHECK_BEGIN/END macros) */
-                if (!MPIR_ThreadInfo.isThreaded) {
-                    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_POLL);
-                    n_fds = poll(sock_set->pollfds, sock_set->poll_array_elems,
-                                 millisecond_timeout);
-                    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_POLL);
-                } else {
-                    /*
-                     * First try a non-blocking poll to see if any immediate
-                     * progress can be made.  This avoids the lock manipulation
-                     * overhead.
+            } else {
+#ifdef MPICH_IS_THREADED
+                /*
+                 * First try a non-blocking poll to see if any immediate
+                 * progress can be made.  This avoids the lock manipulation
+                 * overhead.
+                 */
+                MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_POLL);
+                n_fds = poll(sock_set->pollfds, sock_set->poll_array_elems, 0);
+                MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_POLL);
+
+                if (n_fds == 0 && millisecond_timeout != 0) {
+                    int pollfds_active_elems = sock_set->poll_array_elems;
+
+                    /* The abstraction here is a shared (blocking) resource that
+                     * the threads must coordinate.  That means not holding
+                     * a lock across the blocking operation but also
+                     * ensuring that only one thread at a time attempts
+                     * to use this resource.
+                     *
+                     * What isn't yet clear in this where the test is made
+                     * to ensure that two threads don't call the poll operation,
+                     * even in a nonblocking sense.
                      */
+                    sock_set->pollfds_active = sock_set->pollfds;
+
+                    /* Release the lock so that other threads may make
+                     * progress while this thread waits for something to
+                     * do */
+                    MPL_DBG_MSG(MPIR_DBG_OTHER, TYPICAL,
+                                "Exit global critical section (sock_wait)");
+                    /* MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX); */
+                    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+
                     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_POLL);
-                    n_fds = poll(sock_set->pollfds, sock_set->poll_array_elems, 0);
+                    n_fds = poll(sock_set->pollfds_active,
+                                 pollfds_active_elems, millisecond_timeout);
                     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_POLL);
 
-                    if (n_fds == 0 && millisecond_timeout != 0) {
-                        int pollfds_active_elems = sock_set->poll_array_elems;
+                    /* Reaquire the lock before processing any of the
+                     * information returned from poll */
+                    MPL_DBG_MSG(MPIR_DBG_OTHER, TYPICAL,
+                                "Enter global critical section (sock_wait)");
+                    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+                    /* MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX); */
 
-                        /* The abstraction here is a shared (blocking) resource that
-                         * the threads must coordinate.  That means not holding
-                         * a lock across the blocking operation but also
-                         * ensuring that only one thread at a time attempts
-                         * to use this resource.
-                         *
-                         * What isn't yet clear in this where the test is made
-                         * to ensure that two threads don't call the poll operation,
-                         * even in a nonblocking sense.
-                         */
-                        sock_set->pollfds_active = sock_set->pollfds;
-
-                        /* Release the lock so that other threads may make
-                         * progress while this thread waits for something to
-                         * do */
-                        MPL_DBG_MSG(MPIR_DBG_OTHER, TYPICAL,
-                                    "Exit global critical section (sock_wait)");
-                        MPID_THREAD_CS_EXIT(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-                        MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-
-                        MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_POLL);
-                        n_fds = poll(sock_set->pollfds_active,
-                                     pollfds_active_elems, millisecond_timeout);
-                        MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_POLL);
-
-                        /* Reaquire the lock before processing any of the
-                         * information returned from poll */
-                        MPL_DBG_MSG(MPIR_DBG_OTHER, TYPICAL,
-                                    "Enter global critical section (sock_wait)");
-                        MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-                        MPID_THREAD_CS_ENTER(POBJ, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-
-                        /*
-                         * Update pollfds array if changes were posted while we
-                         * were blocked in poll
-                         */
-                        if (sock_set->pollfds_updated) {
-                            mpi_errno = MPIDI_Sock_update_sock_set(sock_set, pollfds_active_elems);
-                        }
-
-                        sock_set->pollfds_active = NULL;
-                        sock_set->wakeup_posted = FALSE;
+                    /*
+                     * Update pollfds array if changes were posted while we
+                     * were blocked in poll
+                     */
+                    if (sock_set->pollfds_updated) {
+                        mpi_errno = MPIDI_Sock_update_sock_set(sock_set, pollfds_active_elems);
                     }
-                }       /* else !MPIR_ThreadInfo.isThreaded */
+
+                    sock_set->pollfds_active = NULL;
+                    sock_set->wakeup_posted = FALSE;
+                }
+#endif
             }
-#	    endif /* MPICH_IS_THREADED */
 
             if (n_fds > 0) {
                 break;

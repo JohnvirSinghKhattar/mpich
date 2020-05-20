@@ -321,11 +321,13 @@
 /datatype/hindexed_block_contents
 /datatype/hvecblklen
 /datatype/indexed_misc
+/datatype/indexed_misc_oldapi
 /datatype/large_count
 /datatype/large_type
 /datatype/large_type_sendrec
 /datatype/large_vec
 /datatype/lbub
+/datatype/lbub_oldapi
 /datatype/localpack
 /datatype/longdouble
 /datatype/lots_of_types
@@ -340,6 +342,7 @@
 /datatype/simple_pack_external2
 /datatype/simple_resized
 /datatype/simple_size_extent
+/datatype/simple_size_extent_oldapi
 /datatype/sizedtypes
 /datatype/slice_pack
 /datatype/slice_pack_external
@@ -357,6 +360,7 @@
 /datatype/tfree
 /datatype/tmatchsize
 /datatype/transpose_pack
+/datatype/transpose_pack_oldapi
 /datatype/tresized
 /datatype/tresized2
 /datatype/triangular_pack
@@ -364,6 +368,7 @@
 /datatype/typefree
 /datatype/typelb
 /datatype/typename
+/datatype/typename_oldapi
 /datatype/unpack
 /datatype/unusual_noncontigs
 /datatype/vecblklen
@@ -483,6 +488,7 @@
 /errors/pt2pt/proberank
 /errors/pt2pt/truncmsg1
 /errors/pt2pt/truncmsg2
+/errors/pt2pt/truncmsg_mrecv
 /errors/rma/cas_type_check
 /errors/rma/win_sync_complete
 /errors/rma/win_sync_free_at
@@ -532,7 +538,6 @@
 /f08/datatype/allctypesf08
 /f08/datatype/createf08
 /f08/datatype/gaddressf08
-/f08/datatype/get_elem_d
 /f08/datatype/get_elem_u
 /f08/datatype/hindex1f08
 /f08/datatype/hindexed_blockf08
@@ -841,7 +846,6 @@
 /f90/datatype/createf90
 /f90/datatype/gaddressf90
 /f90/datatype/gaddressf90.f90
-/f90/datatype/get_elem_d
 /f90/datatype/get_elem_u
 /f90/datatype/hindex1f90
 /f90/datatype/hindex1f90.f90
@@ -1145,6 +1149,8 @@
 /pt2pt/mprobe
 /pt2pt/multi_psend_derived
 /pt2pt/pingping
+/pt2pt/precv_anysrc
+/pt2pt/precv_anysrc_exp
 /pt2pt/probe_unexp
 /pt2pt/probenull
 /pt2pt/pscancel

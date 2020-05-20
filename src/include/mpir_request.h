@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #ifndef MPIR_REQUEST_H_INCLUDED
@@ -420,6 +418,17 @@ static inline void MPIR_Request_free(MPIR_Request * req)
     }
 }
 
+/* Requests that are not created inside device (general requests, nonblocking collective
+ * requests such as sched, gentran, hcoll) should call MPIR_Request_complete.
+ * MPID_Request_complete are called inside device critical section, therefore, potentially
+ * are unsafe to call outside the device. (NOTE: this will come into effect with ch4 multi-vci.)
+ */
+MPL_STATIC_INLINE_PREFIX void MPIR_Request_complete(MPIR_Request * req)
+{
+    MPIR_cc_set(&req->cc, 0);
+    MPIR_Request_free(req);
+}
+
 /* The "fastpath" version of MPIR_Request_completion_processing.  It only handles
  * MPIR_REQUEST_KIND__SEND and MPIR_REQUEST_KIND__RECV kinds, and it does not attempt to
  * deal with status structures under the assumption that bleeding fast code will
@@ -505,15 +514,24 @@ MPL_STATIC_INLINE_PREFIX int MPIR_Request_has_wait_fn(MPIR_Request * request_ptr
 
 MPL_STATIC_INLINE_PREFIX int MPIR_Grequest_wait(MPIR_Request * request_ptr, MPI_Status * status)
 {
-    return (request_ptr->u.ureq.greq_fns->wait_fn) (1,
-                                                    &request_ptr->u.ureq.greq_fns->
-                                                    grequest_extra_state, 0, status);
+    int mpi_errno;
+    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    mpi_errno = (request_ptr->u.ureq.greq_fns->wait_fn) (1,
+                                                         &request_ptr->u.ureq.greq_fns->
+                                                         grequest_extra_state, 0, status);
+    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    return mpi_errno;
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIR_Grequest_poll(MPIR_Request * request_ptr, MPI_Status * status)
 {
-    return (request_ptr->u.ureq.greq_fns->poll_fn) (request_ptr->u.ureq.
-                                                    greq_fns->grequest_extra_state, status);
+    int mpi_errno;
+    MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    mpi_errno =
+        (request_ptr->u.ureq.greq_fns->poll_fn) (request_ptr->u.ureq.greq_fns->grequest_extra_state,
+                                                 status);
+    MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
+    return mpi_errno;
 }
 
 int MPIR_Test_impl(MPIR_Request * request, int *flag, MPI_Status * status);

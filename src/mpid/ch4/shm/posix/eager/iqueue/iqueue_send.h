@@ -1,13 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2020 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef POSIX_EAGER_IQUEUE_SEND_H_INCLUDED
 #define POSIX_EAGER_IQUEUE_SEND_H_INCLUDED
 
@@ -17,19 +12,22 @@ MPL_STATIC_INLINE_PREFIX MPIDI_POSIX_eager_iqueue_cell_t
     * MPIDI_POSIX_eager_iqueue_new_cell(MPIDI_POSIX_eager_iqueue_transport_t * transport)
 {
     int i;
+    MPIDI_POSIX_eager_iqueue_cell_t *cell = NULL;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_EAGER_IQUEUE_NEW_CELL);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_EAGER_IQUEUE_NEW_CELL);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_EAGER_IQUEUE_NEW_CELL);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_EAGER_IQUEUE_NEW_CELL);
 
     for (i = 0; i < transport->num_cells; i++) {
-        MPIDI_POSIX_eager_iqueue_cell_t *cell = MPIDI_POSIX_EAGER_IQUEUE_THIS_CELL(transport, i);
+        cell = MPIDI_POSIX_EAGER_IQUEUE_THIS_CELL(transport, i);
         if (cell->type == MPIDI_POSIX_EAGER_IQUEUE_CELL_TYPE_NULL) {
-            return cell;
+            goto fn_exit;
         }
     }
+    cell = NULL;
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_EAGER_IQUEUE_NEW_CELL);
-    return NULL;
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_EAGER_IQUEUE_NEW_CELL);
+    return cell;
 }
 
 /* This function attempts to send the next chunk of a message via the queue. If no cells are
@@ -50,12 +48,11 @@ MPIDI_POSIX_eager_send(int grank,
     MPIDI_POSIX_eager_iqueue_cell_t *cell;
     MPIDI_POSIX_eager_iqueue_terminal_t *terminal;
     size_t i, iov_done, capacity, available;
-    uintptr_t prev, handle;
     char *payload;
     int ret = MPIDI_POSIX_OK;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_EAGER_SEND);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_EAGER_SEND);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_EAGER_SEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_EAGER_SEND);
 
     /* Get the transport object that holds all of the global variables. */
     transport = MPIDI_POSIX_eager_iqueue_get_transport();
@@ -81,7 +78,8 @@ MPIDI_POSIX_eager_send(int grank,
     terminal = &transport->terminals[MPIDI_POSIX_global.local_ranks[grank]];
 
     /* Get the offset of the cell in the queue */
-    handle = MPIDI_POSIX_EAGER_IQUEUE_GET_HANDLE(transport, cell);
+    void *handle;
+    handle = (void *) MPIDI_POSIX_EAGER_IQUEUE_GET_HANDLE(transport, cell);
 
     /* Get the memory allocated to be used for the message transportation. */
     payload = MPIDI_POSIX_EAGER_IQUEUE_CELL_PAYLOAD(cell);
@@ -128,15 +126,14 @@ MPIDI_POSIX_eager_send(int grank,
     cell->payload_size = capacity - available;
 
     /* Move the flag to indicate the head. */
+    /* The condition swaps the head of the terminal with the current handle if the previous head
+     * has now been consumed. Continues until we swap out the prev pointer. */
+    void *prev;
     do {
-        prev = terminal->head;
-        cell->prev = prev;
-        OPA_compiler_barrier();
-    } while (((uintptr_t) (unsigned int *)
-              /* Swaps the head of the terminal with the current handle if the previous head has
-               * now been consumed. Continues until we swap out the prev pointer. */
-              OPA_cas_ptr((OPA_ptr_t *) & terminal->head, (void *) prev, (void *) handle)
-              != prev));
+        prev = MPL_atomic_load_ptr(&terminal->head);
+        cell->prev = (uintptr_t) prev;
+        MPL_atomic_compiler_barrier();
+    } while (MPL_atomic_cas_ptr(&terminal->head, prev, handle) != prev);
 
     /* Update the user counter for number of iovecs left */
     *iov_num -= iov_done;
@@ -151,7 +148,7 @@ MPIDI_POSIX_eager_send(int grank,
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_EAGER_SEND);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_EAGER_SEND);
     return ret;
 }
 

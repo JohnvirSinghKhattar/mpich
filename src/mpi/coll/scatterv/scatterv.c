@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -20,7 +18,7 @@ cvars:
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select scatterv algorithm
-        auto   - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
         linear - Force linear algorithm
         nb     - Force nonblocking algorithm
 
@@ -33,7 +31,7 @@ cvars:
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select scatterv algorithm
-        auto   - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
         linear - Force linear algorithm
         nb     - Force nonblocking algorithm
 
@@ -76,46 +74,49 @@ int MPI_Scatterv(const void *sendbuf, const int *sendcounts, const int *displs,
 #undef MPI_Scatterv
 #define MPI_Scatterv PMPI_Scatterv
 
-int MPIR_Scatterv_intra_auto(const void *sendbuf, const int *sendcounts, const int *displs,
-                             MPI_Datatype sendtype, void *recvbuf, int recvcount,
-                             MPI_Datatype recvtype, int root, MPIR_Comm * comm_ptr,
-                             MPIR_Errflag_t * errflag)
+
+int MPIR_Scatterv_allcomm_auto(const void *sendbuf, const int *sendcounts, const int *displs,
+                               MPI_Datatype sendtype, void *recvbuf, int recvcount,
+                               MPI_Datatype recvtype, int root, MPIR_Comm * comm_ptr,
+                               MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    mpi_errno =
-        MPIR_Scatterv_allcomm_linear(sendbuf, sendcounts, displs, sendtype, recvbuf, recvcount,
-                                     recvtype, root, comm_ptr, errflag);
-    MPIR_ERR_CHECK(mpi_errno);
+    MPIR_Csel_coll_sig_s coll_sig = {
+        .coll_type = MPIR_CSEL_COLL_TYPE__SCATTERV,
+        .comm_ptr = comm_ptr,
 
-  fn_exit:
-    if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
+        .u.scatterv.sendbuf = sendbuf,
+        .u.scatterv.sendcounts = sendcounts,
+        .u.scatterv.displs = displs,
+        .u.scatterv.sendtype = sendtype,
+        .u.scatterv.recvcount = recvcount,
+        .u.scatterv.recvbuf = recvbuf,
+        .u.scatterv.recvtype = recvtype,
+        .u.scatterv.root = root,
+    };
+
+    MPII_Csel_container_s *cnt = MPIR_Csel_search(comm_ptr->csel_comm, coll_sig);
+    MPIR_Assert(cnt);
+
+    switch (cnt->id) {
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Scatterv_allcomm_linear:
+            mpi_errno =
+                MPIR_Scatterv_allcomm_linear(sendbuf, sendcounts, displs, sendtype, recvbuf,
+                                             recvcount, recvtype, root, comm_ptr, errflag);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Scatterv_allcomm_nb:
+            mpi_errno =
+                MPIR_Scatterv_allcomm_nb(sendbuf, sendcounts, displs, sendtype, recvbuf, recvcount,
+                                         recvtype, root, comm_ptr, errflag);
+            break;
+
+        default:
+            MPIR_Assert(0);
+    }
+
     return mpi_errno;
-
-  fn_fail:
-    goto fn_exit;
-}
-
-int MPIR_Scatterv_inter_auto(const void *sendbuf, const int *sendcounts, const int *displs,
-                             MPI_Datatype sendtype, void *recvbuf, int recvcount,
-                             MPI_Datatype recvtype, int root, MPIR_Comm * comm_ptr,
-                             MPIR_Errflag_t * errflag)
-{
-    int mpi_errno = MPI_SUCCESS;
-
-    mpi_errno =
-        MPIR_Scatterv_allcomm_linear(sendbuf, sendcounts, displs, sendtype, recvbuf, recvcount,
-                                     recvtype, root, comm_ptr, errflag);
-    MPIR_ERR_CHECK(mpi_errno);
-
-  fn_exit:
-    if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
-    return mpi_errno;
-
-  fn_fail:
-    goto fn_exit;
 }
 
 int MPIR_Scatterv_impl(const void *sendbuf, const int *sendcounts,
@@ -139,8 +140,8 @@ int MPIR_Scatterv_impl(const void *sendbuf, const int *sendcounts,
                 break;
             case MPIR_CVAR_SCATTERV_INTRA_ALGORITHM_auto:
                 mpi_errno =
-                    MPIR_Scatterv_intra_auto(sendbuf, sendcounts, displs, sendtype, recvbuf,
-                                             recvcount, recvtype, root, comm_ptr, errflag);
+                    MPIR_Scatterv_allcomm_auto(sendbuf, sendcounts, displs, sendtype, recvbuf,
+                                               recvcount, recvtype, root, comm_ptr, errflag);
                 break;
             default:
                 MPIR_Assert(0);
@@ -159,8 +160,8 @@ int MPIR_Scatterv_impl(const void *sendbuf, const int *sendcounts,
                 break;
             case MPIR_CVAR_SCATTERV_INTER_ALGORITHM_auto:
                 mpi_errno =
-                    MPIR_Scatterv_inter_auto(sendbuf, sendcounts, displs, sendtype, recvbuf,
-                                             recvcount, recvtype, root, comm_ptr, errflag);
+                    MPIR_Scatterv_allcomm_auto(sendbuf, sendcounts, displs, sendtype, recvbuf,
+                                               recvcount, recvtype, root, comm_ptr, errflag);
                 break;
             default:
                 MPIR_Assert(0);
@@ -242,7 +243,6 @@ int MPI_Scatterv(const void *sendbuf, const int *sendcounts, const int *displs,
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_ENTER(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     MPIR_FUNC_TERSE_COLL_ENTER(MPID_STATE_MPI_SCATTERV);
 
     /* Validate parameters, especially handles needing to be converted */
@@ -370,9 +370,6 @@ int MPI_Scatterv(const void *sendbuf, const int *sendcounts, const int *displs,
                     MPIR_ERRTEST_USERBUFFER(recvbuf, recvcount, recvtype, mpi_errno);
                 }
             }
-
-            if (mpi_errno != MPI_SUCCESS)
-                goto fn_fail;
         }
         MPID_END_ERROR_CHECKS;
     }
@@ -390,7 +387,6 @@ int MPI_Scatterv(const void *sendbuf, const int *sendcounts, const int *displs,
   fn_exit:
     MPIR_FUNC_TERSE_COLL_EXIT(MPID_STATE_MPI_SCATTERV);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_EXIT(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     return mpi_errno;
 
   fn_fail:

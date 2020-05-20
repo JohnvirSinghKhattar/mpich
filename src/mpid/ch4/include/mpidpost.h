@@ -1,13 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef MPIDPOST_H_INCLUDED
 #define MPIDPOST_H_INCLUDED
 
@@ -32,7 +27,7 @@ MPL_STATIC_INLINE_PREFIX void MPID_Request_free_hook(MPIR_Request * req)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_REQUEST_FREE_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_REQUEST_FREE_HOOK);
 
-    OPA_incr_int(&MPIDI_global.progress_count);
+    MPL_atomic_fetch_add_int(&MPIDI_global.progress_count, 1);
 
     if (req->kind == MPIR_REQUEST_KIND__PREQUEST_RECV &&
         NULL != MPIDI_REQUEST_ANYSOURCE_PARTNER(req))

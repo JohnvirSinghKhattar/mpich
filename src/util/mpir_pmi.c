@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2019 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include <mpir_pmi.h>
@@ -548,7 +547,11 @@ int MPIR_pmi_bcast(void *buf, int bufsize, MPIR_PMI_DOMAIN domain)
     int root;
     static int bcast_seq = 0;
 
-    if (in_domain) {
+    if (!in_domain) {
+        /* PMI_Barrier may require all process to participate */
+        mpi_errno = optional_bcast_barrier(domain);
+        MPIR_ERR_CHECK(mpi_errno);
+    } else {
         MPIR_Assert(buf);
         MPIR_Assert(bufsize > 0);
 
@@ -561,20 +564,15 @@ int MPIR_pmi_bcast(void *buf, int bufsize, MPIR_PMI_DOMAIN domain)
         /* add root to the key since potentially we may have multiple root(s)
          * on a single node due to odd-even-cliques */
         sprintf(key, "-bcast-%d-%d", bcast_seq, root);
-    }
 
-    if (in_domain) {
         if (is_root) {
             mpi_errno = put_ex(key, buf, bufsize, is_local);
             MPIR_ERR_CHECK(mpi_errno);
         }
-    }
 
-    /* PMI_Barrier may require all process to participate */
-    mpi_errno = optional_bcast_barrier(domain);
-    MPIR_ERR_CHECK(mpi_errno);
+        mpi_errno = optional_bcast_barrier(domain);
+        MPIR_ERR_CHECK(mpi_errno);
 
-    if (in_domain) {
         if (!is_root) {
             int got_size = bufsize;
             mpi_errno = get_ex(root, key, buf, &got_size, is_local);
@@ -901,7 +899,7 @@ static int build_nodemap(int *nodemap, int sz, int *p_max_node_id)
 static int get_option_no_local(void)
 {
     /* Used for debugging only.  This disables communication over shared memory */
-#ifdef ENABLED_NO_LOCAL
+#ifdef ENABLE_NO_LOCAL
     return 1;
 #else
     return MPIR_CVAR_NOLOCAL;
@@ -916,11 +914,7 @@ static int get_option_num_cliques(void)
     if (MPIR_CVAR_NUM_CLIQUES > 1) {
         return MPIR_CVAR_NUM_CLIQUES;
     } else {
-#ifdef ENABLED_ODD_EVEN_CLIQUES
-        return 2;
-#else
         return MPIR_CVAR_ODD_EVEN_CLIQUES ? 2 : 1;
-#endif
     }
 }
 
@@ -1139,8 +1133,8 @@ static int mpi_to_pmi_keyvals(MPIR_Info * info_ptr, PMI_keyval_t ** kv_ptr, int 
     PMI_keyval_t *kv = 0;
     int nkeys = 0, vallen, flag, mpi_errno = MPI_SUCCESS;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_MPI_TO_PMI_KEYVALS);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_MPI_TO_PMI_KEYVALS);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPI_TO_PMI_KEYVALS);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPI_TO_PMI_KEYVALS);
 
     if (!info_ptr || info_ptr->handle == MPI_INFO_NULL)
         goto fn_exit;
@@ -1164,7 +1158,7 @@ static int mpi_to_pmi_keyvals(MPIR_Info * info_ptr, PMI_keyval_t ** kv_ptr, int 
   fn_exit:
     *kv_ptr = kv;
     *nkeys_ptr = nkeys;
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_MPI_TO_PMI_KEYVALS);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPI_TO_PMI_KEYVALS);
     return mpi_errno;
 
   fn_fail:
@@ -1173,8 +1167,8 @@ static int mpi_to_pmi_keyvals(MPIR_Info * info_ptr, PMI_keyval_t ** kv_ptr, int 
 
 static void free_pmi_keyvals(PMI_keyval_t ** kv, int size, int *counts)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_FREE_PMI_KEYVALS);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_FREE_PMI_KEYVALS);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_FREE_PMI_KEYVALS);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_FREE_PMI_KEYVALS);
 
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < counts[i]; j++) {
@@ -1184,6 +1178,6 @@ static void free_pmi_keyvals(PMI_keyval_t ** kv, int size, int *counts)
         MPL_free(kv[i]);
     }
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_FREE_PMI_KEYVALS);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_FREE_PMI_KEYVALS);
 }
 #endif /* USE_PMI1_API or USE_PMI2_API */

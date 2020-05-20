@@ -1,8 +1,9 @@
 #! /bin/sh
-# 
-# (C) 2006 by Argonne National Laboratory.
-#     See COPYRIGHT in top-level directory.
-#
+##
+## Copyright (C) by Argonne National Laboratory
+##     See COPYRIGHT in top-level directory
+##
+
 # Update all of the derived files
 # For best performance, execute this in the top-level directory.
 # There are some experimental features to allow it to be executed in
@@ -103,6 +104,8 @@ do_subcfg_m4=yes
 do_izem=yes
 do_ofi=yes
 do_ucx=yes
+do_json=yes
+do_yaksa=yes
 
 export do_build_configure
 
@@ -225,6 +228,10 @@ for arg in "$@" ; do
 
     -without-ucx|--without-ucx)
         do_ucx=no
+        ;;
+
+    -without-json|--without-json)
+        do_json=no
         ;;
 
 	-help|--help|-usage|--usage)
@@ -593,24 +600,32 @@ echo "###########################################################"
 echo
 
 # hwloc is always required
-check_submodule_presence src/hwloc
+check_submodule_presence modules/hwloc
 
 # external packages that require autogen.sh to be run for each of them
-externals="src/pm/hydra src/pm/hydra2 src/mpi/romio src/openpa src/hwloc test/mpi"
+externals="src/pm/hydra src/pm/hydra2 src/mpi/romio src/openpa modules/hwloc test/mpi modules/json-c modules/yaksa"
 
 if [ "yes" = "$do_izem" ] ; then
-    check_submodule_presence src/izem
-    externals="${externals} src/izem"
+    check_submodule_presence modules/izem
+    externals="${externals} modules/izem"
 fi
 
 if [ "yes" = "$do_ucx" ] ; then
-    check_submodule_presence src/mpid/ch4/netmod/ucx/ucx
-    externals="${externals} src/mpid/ch4/netmod/ucx/ucx"
+    check_submodule_presence modules/ucx
+    externals="${externals} modules/ucx"
 fi
 
 if [ "yes" = "$do_ofi" ] ; then
-    check_submodule_presence src/mpid/ch4/netmod/ofi/libfabric
-    externals="${externals} src/mpid/ch4/netmod/ofi/libfabric"
+    check_submodule_presence modules/libfabric
+    externals="${externals} modules/libfabric"
+fi
+
+if [ "yes" = "$do_json" ] ; then
+    check_submodule_presence "modules/json-c"
+fi
+
+if [ "yes" = "$do_yaksa" ] ; then
+    check_submodule_presence "modules/yaksa"
 fi
 
 ########################################################################
@@ -651,8 +666,8 @@ for destdir in $confdb_dirs ; do
 done
 
 # Copying hwloc to hydra
-sync_external src/hwloc src/pm/hydra/tools/topo/hwloc/hwloc
-sync_external src/hwloc src/pm/hydra2/libhydra/topo/hwloc/hwloc
+sync_external modules/hwloc src/pm/hydra/tools/topo/hwloc/hwloc
+sync_external modules/hwloc src/pm/hydra2/libhydra/topo/hwloc/hwloc
 # remove .git directories to avoid confusing git clean
 rm -rf src/pm/hydra/tools/topo/hwloc/hwloc/.git
 rm -rf src/pm/hydra2/libhydra/topo/hwloc/hwloc/.git
@@ -1052,3 +1067,15 @@ if [ "$do_build_configure" = "yes" ] ; then
 	fi
     done
 fi
+
+
+echo
+echo
+echo "###########################################################"
+echo "## Creating JSON char arrays"
+echo "###########################################################"
+echo
+
+echo_n "generating json char arrays... "
+./maint/tuning/coll/json_gen.sh
+echo "done"

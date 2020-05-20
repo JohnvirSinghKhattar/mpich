@@ -1,13 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef OFI_AM_IMPL_H_INCLUDED
 #define OFI_AM_IMPL_H_INCLUDED
 
@@ -84,7 +79,7 @@ static inline void MPIDI_OFI_am_clear_request(MPIR_Request * sreq)
     req_hdr = MPIDI_OFI_AMREQUEST(sreq, req_hdr);
 
     if (!req_hdr)
-        return;
+        goto fn_exit;
 
     if (req_hdr->am_hdr != &req_hdr->am_hdr_buf[0]) {
         MPL_free(req_hdr->am_hdr);
@@ -92,6 +87,8 @@ static inline void MPIDI_OFI_am_clear_request(MPIR_Request * sreq)
 
     MPIDIU_release_buf(req_hdr);
     MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
+
+  fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_AM_CLEAR_REQUEST);
     return;
 }
@@ -248,7 +245,7 @@ static inline int MPIDI_OFI_am_isend_long(int rank,
                              0ULL,
                              lmt_info->rma_key,
                              0ULL, &MPIDI_OFI_AMREQUEST_HDR(sreq, lmt_mr), NULL), mr_reg);
-    OPA_incr_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs);
+    MPL_atomic_fetch_add_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs, 1);
 
     if (MPIDI_OFI_ENABLE_MR_PROV_KEY) {
         /* MR_BASIC */
@@ -266,7 +263,6 @@ static inline int MPIDI_OFI_am_isend_long(int rank,
     iov[2].iov_base = lmt_info;
     iov[2].iov_len = sizeof(*lmt_info);
     MPIDI_OFI_AMREQUEST(sreq, event_id) = MPIDI_OFI_EVENT_AM_SEND;
-    MPIDI_OFI_ASSERT_IOVEC_ALIGN(iov);
     MPIDI_OFI_CALL_RETRY_AM(fi_sendv(MPIDI_OFI_global.ctx[0].tx, iov, NULL, 3,
                                      MPIDI_OFI_comm_to_phys(comm, rank),
                                      &MPIDI_OFI_AMREQUEST(sreq, context)), sendv);
@@ -318,7 +314,6 @@ static inline int MPIDI_OFI_am_isend_short(int rank,
 
     MPIR_cc_incr(sreq->cc_ptr, &c);
     MPIDI_OFI_AMREQUEST(sreq, event_id) = MPIDI_OFI_EVENT_AM_SEND;
-    MPIDI_OFI_ASSERT_IOVEC_ALIGN(iov);
     MPIDI_OFI_CALL_RETRY_AM(fi_sendv(MPIDI_OFI_global.ctx[0].tx, iov, NULL, 3,
                                      MPIDI_OFI_comm_to_phys(comm, rank),
                                      &MPIDI_OFI_AMREQUEST(sreq, context)), sendv);
@@ -353,9 +348,24 @@ static inline int MPIDI_OFI_do_am_isend(int rank,
     mpi_errno = MPIDI_OFI_am_init_request(am_hdr, am_hdr_sz, sreq);
     MPIR_ERR_CHECK(mpi_errno);
 
-    if (!dt_contig) {
-        send_buf = (char *) MPL_malloc(data_sz, MPL_MEM_BUFFER);
+    MPL_pointer_attr_t attr;
+    MPL_gpu_query_pointer_attr(buf, &attr);
+    if (attr.type == MPL_GPU_POINTER_DEV && !MPIDI_OFI_ENABLE_HMEM) {
+        /* Force packing of GPU buffer in host memory */
+        dt_contig = 0;
+    }
 
+    if (!dt_contig) {
+        /* FIXME: currently we always do packing, also for high density types. However,
+         * we should not do packing unless needed. Also, for large low-density types
+         * we should not allocate the entire buffer and do the packing at once. */
+        /* TODO: (1) Skip packing for high-density datatypes;
+         *       (2) Pipeline allocation for low-density datatypes; */
+        /* FIXME: allocating a GPU registered host buffer adds some additional overhead.
+         * However, once the new buffer pool infrastructure is setup, we would simply be
+         * allocating a buffer from the pool, so whether it's a regular malloc buffer or a GPU
+         * registered buffer should be equivalent with respect to performance. */
+        MPL_gpu_malloc_host((void **) &send_buf, data_sz);
         mpi_errno = MPIR_Typerep_pack(buf, count, datatype, 0, send_buf, data_sz, &last);
         MPIR_ERR_CHECK(mpi_errno);
 
@@ -401,7 +411,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_emulated_inject(fi_addr_t addr,
 
     MPIDI_OFI_REQUEST(sreq, event_id) = MPIDI_OFI_EVENT_INJECT_EMU;
     MPIDI_OFI_REQUEST(sreq, util.inject_buf) = ibuf;
-    OPA_incr_int(&MPIDI_OFI_global.am_inflight_inject_emus);
+    MPL_atomic_fetch_add_int(&MPIDI_OFI_global.am_inflight_inject_emus, 1);
 
     MPIDI_OFI_CALL_RETRY_AM(fi_send(MPIDI_OFI_global.ctx[0].tx, ibuf, len,
                                     NULL /* desc */ , addr, &(MPIDI_OFI_REQUEST(sreq, context))),

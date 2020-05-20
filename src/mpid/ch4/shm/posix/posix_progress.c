@@ -1,12 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2017 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidimpl.h"
@@ -38,16 +32,14 @@ static int progress_recv(int blocking)
     int result = MPIDI_POSIX_OK;
     MPIR_Request *rreq = NULL;
     void *p_data = NULL;
-    size_t p_data_sz = 0;
     size_t in_total_data_sz = 0;
-    int is_contig;
     void *am_hdr = NULL;
     MPIDI_POSIX_am_header_t *msg_hdr;
     uint8_t *payload;
     size_t payload_left;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_PROGRESS_RECV);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_PROGRESS_RECV);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_PROGRESS_RECV);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_PROGRESS_RECV);
 
     /* Check to see if any new messages are ready for processing from the eager submodule. */
     result = MPIDI_POSIX_eager_recv_begin(&transaction);
@@ -71,7 +63,6 @@ static int progress_recv(int blocking)
         p_data = payload + msg_hdr->am_hdr_sz;
 
         in_total_data_sz = msg_hdr->data_sz;
-        p_data_sz = msg_hdr->data_sz;
 
         /* This is a SHM internal control header */
         /* TODO: internal control can use the generic am interface,
@@ -85,36 +76,23 @@ static int progress_recv(int blocking)
             goto fn_exit;
         }
 
-        /* Call the MPIDIG function to handle the initial receipt of the message. This will attempt
-         * to match the message (if appropriate) and return a request if the message was matched. */
-        MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id,
-                                                           am_hdr,
-                                                           &p_data,
-                                                           &p_data_sz,
-                                                           1 /* is_local */ , &is_contig,
-                                                           &rreq);
-        POSIX_TRACE("POSIX AM target callback: handler_id = %d, am_hdr = %p, p_data = %p "
-                    "p_data_sz = %lu, is_contig = %d, rreq = %p\n",
-                    msg_hdr->handler_id, am_hdr, p_data, p_data_sz, is_contig, rreq);
         payload += msg_hdr->am_hdr_sz;
         payload_left -= msg_hdr->am_hdr_sz;
 
+        /* note: setting is_local, is_async to 1, 1 */
+        MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
+                                                           NULL, in_total_data_sz, 1, 1, &rreq);
+
         if (!rreq) {
-            /* no rreq, no payload */
             MPIDI_POSIX_eager_recv_commit(&transaction);
             goto fn_exit;
+        } else if (in_total_data_sz == payload_left) {
+            MPIDIG_recv_copy(p_data, rreq);
+            MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
+            MPIDI_POSIX_eager_recv_commit(&transaction);
+            MPIDI_POSIX_EAGER_RECV_COMPLETED_HOOK(rreq);
+            goto fn_exit;
         } else {
-            if (is_contig && (in_total_data_sz == payload_left)) {
-                /* got single complete payload */
-                MPIDIG_recv_copy(payload, rreq);
-
-                MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
-
-                MPIDI_POSIX_eager_recv_commit(&transaction);
-                MPIDI_POSIX_EAGER_RECV_COMPLETED_HOOK(rreq);
-                goto fn_exit;
-            }
-
             /* prepare for asynchronous transfer */
             MPIDIG_recv_setup(rreq);
 
@@ -132,7 +110,7 @@ static int progress_recv(int blocking)
     MPIDI_POSIX_eager_recv_commit(&transaction);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_PROGRESS_RECV);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_PROGRESS_RECV);
     return mpi_errno;
 }
 
@@ -144,24 +122,12 @@ static int progress_send(int blocking)
     MPIR_Request *sreq = NULL;
     MPIDI_POSIX_am_request_header_t *curr_sreq_hdr = NULL;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_PROGRESS_SEND);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_PROGRESS_SEND);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_PROGRESS_SEND);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_PROGRESS_SEND);
 
     if (MPIDI_POSIX_global.postponed_queue) {
         /* Drain postponed queue */
         curr_sreq_hdr = MPIDI_POSIX_global.postponed_queue;
-
-        POSIX_TRACE("Queue OUT HDR [ POSIX AM [handler_id %" PRIu64 ", am_hdr_sz %" PRIu64
-                    ", data_sz %" PRIu64 ", seq_num = %d], request=%p] to %d\n",
-                    curr_sreq_hdr->msg_hdr ? curr_sreq_hdr->msg_hdr->handler_id : (uint64_t) - 1,
-                    curr_sreq_hdr->msg_hdr ? curr_sreq_hdr->msg_hdr->am_hdr_sz : (uint64_t) - 1,
-                    curr_sreq_hdr->msg_hdr ? curr_sreq_hdr->msg_hdr->data_sz : (uint64_t) - 1,
-#ifdef POSIX_AM_DEBUG
-                    curr_sreq_hdr->msg_hdr ? curr_sreq_hdr->msg_hdr->seq_num : -1,
-#else /* POSIX_AM_DEBUG */
-                    -1,
-#endif /* POSIX_AM_DEBUG */
-                    curr_sreq_hdr->request, curr_sreq_hdr->dst_grank);
 
         result = MPIDI_POSIX_eager_send(curr_sreq_hdr->dst_grank,
                                         &curr_sreq_hdr->msg_hdr,
@@ -191,7 +157,7 @@ static int progress_send(int blocking)
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_PROGRESS_SEND);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_PROGRESS_SEND);
     return mpi_errno;
 }
 

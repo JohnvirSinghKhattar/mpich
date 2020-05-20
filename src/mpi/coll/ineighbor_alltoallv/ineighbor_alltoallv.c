@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -13,26 +12,28 @@ cvars:
     - name        : MPIR_CVAR_INEIGHBOR_ALLTOALLV_INTRA_ALGORITHM
       category    : COLLECTIVE
       type        : enum
-      default     : sched_auto
+      default     : auto
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select ineighbor_alltoallv algorithm
-        sched_auto            - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
+        sched_auto - Internal algorithm selection for sched-based algorithms
         sched_linear          - Force linear algorithm
         gentran_linear  - Force generic transport based linear algorithm
 
     - name        : MPIR_CVAR_INEIGHBOR_ALLTOALLV_INTER_ALGORITHM
       category    : COLLECTIVE
       type        : enum
-      default     : sched_auto
+      default     : auto
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select ineighbor_alltoallv algorithm
-        sched_auto            - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
+        sched_auto - Internal algorithm selection for sched-based algorithms
         sched_linear          - Force linear algorithm
         gentran_linear  - Force generic transport based linear algorithm
 
@@ -75,6 +76,69 @@ int MPI_Ineighbor_alltoallv(const void *sendbuf, const int sendcounts[], const i
 #ifndef MPICH_MPI_FROM_PMPI
 #undef MPI_Ineighbor_alltoallv
 #define MPI_Ineighbor_alltoallv PMPI_Ineighbor_alltoallv
+
+
+int MPIR_Ineighbor_alltoallv_allcomm_auto(const void *sendbuf, const int sendcounts[],
+                                          const int sdispls[], MPI_Datatype sendtype, void *recvbuf,
+                                          const int recvcounts[], const int rdispls[],
+                                          MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
+                                          MPIR_Request ** request)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_Csel_coll_sig_s coll_sig = {
+        .coll_type = MPIR_CSEL_COLL_TYPE__INEIGHBOR_ALLTOALLV,
+        .comm_ptr = comm_ptr,
+
+        .u.ineighbor_alltoallv.sendbuf = sendbuf,
+        .u.ineighbor_alltoallv.sendcounts = sendcounts,
+        .u.ineighbor_alltoallv.sdispls = sdispls,
+        .u.ineighbor_alltoallv.sendtype = sendtype,
+        .u.ineighbor_alltoallv.recvbuf = recvbuf,
+        .u.ineighbor_alltoallv.recvcounts = recvcounts,
+        .u.ineighbor_alltoallv.rdispls = rdispls,
+        .u.ineighbor_alltoallv.recvtype = recvtype,
+    };
+
+    MPII_Csel_container_s *cnt = MPIR_Csel_search(comm_ptr->csel_comm, coll_sig);
+    MPIR_Assert(cnt);
+
+    switch (cnt->id) {
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ineighbor_alltoallv_allcomm_gentran_linear:
+            mpi_errno =
+                MPIR_Ineighbor_alltoallv_allcomm_gentran_linear(sendbuf, sendcounts, sdispls,
+                                                                sendtype, recvbuf, recvcounts,
+                                                                rdispls, recvtype, comm_ptr,
+                                                                request);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ineighbor_alltoallv_intra_sched_auto:
+            MPII_SCHED_WRAPPER(MPIR_Ineighbor_alltoallv_intra_sched_auto, comm_ptr, request,
+                               sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls,
+                               recvtype);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ineighbor_alltoallv_inter_sched_auto:
+            MPII_SCHED_WRAPPER(MPIR_Ineighbor_alltoallv_inter_sched_auto, comm_ptr, request,
+                               sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls,
+                               recvtype);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ineighbor_alltoallv_allcomm_sched_linear:
+            MPII_SCHED_WRAPPER(MPIR_Ineighbor_alltoallv_allcomm_sched_linear, comm_ptr, request,
+                               sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls,
+                               recvtype);
+            break;
+
+        default:
+            MPIR_Assert(0);
+    }
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
 
 int MPIR_Ineighbor_alltoallv_intra_sched_auto(const void *sendbuf, const int sendcounts[],
                                               const int sdispls[], MPI_Datatype sendtype,
@@ -177,6 +241,13 @@ int MPIR_Ineighbor_alltoallv_impl(const void *sendbuf, const int sendcounts[],
                                    rdispls, recvtype);
                 break;
 
+            case MPIR_CVAR_INEIGHBOR_ALLTOALLV_INTRA_ALGORITHM_auto:
+                mpi_errno =
+                    MPIR_Ineighbor_alltoallv_allcomm_auto(sendbuf, sendcounts, sdispls, sendtype,
+                                                          recvbuf, recvcounts, rdispls, recvtype,
+                                                          comm_ptr, request);
+                break;
+
             default:
                 MPIR_Assert(0);
         }
@@ -200,6 +271,13 @@ int MPIR_Ineighbor_alltoallv_impl(const void *sendbuf, const int sendcounts[],
                 MPII_SCHED_WRAPPER(MPIR_Ineighbor_alltoallv_inter_sched_auto, comm_ptr, request,
                                    sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts,
                                    rdispls, recvtype);
+                break;
+
+            case MPIR_CVAR_INEIGHBOR_ALLTOALLV_INTER_ALGORITHM_auto:
+                mpi_errno =
+                    MPIR_Ineighbor_alltoallv_allcomm_auto(sendbuf, sendcounts, sdispls, sendtype,
+                                                          recvbuf, recvcounts, rdispls, recvtype,
+                                                          comm_ptr, request);
                 break;
 
             default:
@@ -273,7 +351,6 @@ int MPI_Ineighbor_alltoallv(const void *sendbuf, const int sendcounts[], const i
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_INEIGHBOR_ALLTOALLV);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_ENTER(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_INEIGHBOR_ALLTOALLV);
 
     /* Validate parameters, especially handles needing to be converted */
@@ -348,7 +425,6 @@ int MPI_Ineighbor_alltoallv(const void *sendbuf, const int sendcounts[], const i
   fn_exit:
     MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_INEIGHBOR_ALLTOALLV);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_EXIT(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     return mpi_errno;
 
   fn_fail:

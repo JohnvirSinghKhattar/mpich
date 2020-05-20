@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #ifndef MPIR_THREAD_H_INCLUDED
@@ -39,6 +37,13 @@ extern MPIR_Thread_info_t MPIR_ThreadInfo;
 #define MPIR_THREAD_CHECK_BEGIN
 #define MPIR_THREAD_CHECK_END
 #endif /* MPICH_IS_THREADED */
+
+/* During run time, `isThreaded` should be used, but it still need to be guarded */
+#if defined(MPICH_IS_THREADED)
+#define MPIR_IS_THREADED    MPIR_ThreadInfo.isThreaded
+#else
+#define MPIR_IS_THREADED    0
+#endif
 
 /* ------------------------------------------------------------ */
 /* Global thread model, used for non-performance-critical paths */
@@ -86,8 +91,9 @@ MPIR_EXTERN MPID_Thread_mutex_t MPIR_THREAD_POBJ_PMI_MUTEX;
 #define MPIR_THREAD_POBJ_WIN_MUTEX(_win_ptr)   _win_ptr->mutex
 
 #elif MPICH_THREAD_GRANULARITY == MPICH_THREAD_GRANULARITY__VCI
-MPIR_EXTERN MPID_Thread_mutex_t MPIR_THREAD_VCI_GLOBAL_MUTEX;
 MPIR_EXTERN MPID_Thread_mutex_t MPIR_THREAD_VCI_HANDLE_MUTEX;
+MPIR_EXTERN MPID_Thread_mutex_t MPIR_THREAD_VCI_CTX_MUTEX;
+MPIR_EXTERN MPID_Thread_mutex_t MPIR_THREAD_VCI_BSEND_MUTEX;
 
 #endif /* MPICH_THREAD_GRANULARITY */
 

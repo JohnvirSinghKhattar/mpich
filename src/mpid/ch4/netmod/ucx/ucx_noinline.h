@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2019 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #ifndef UCX_NOINLINE_H_INCLUDED
@@ -10,11 +9,13 @@
 #include "ucx_impl.h"
 
 /* ucx_comm.h */
-int MPIDI_UCX_mpi_comm_create_hook(MPIR_Comm * comm);
+int MPIDI_UCX_mpi_comm_commit_pre_hook(MPIR_Comm * comm);
+int MPIDI_UCX_mpi_comm_commit_post_hook(MPIR_Comm * comm);
 int MPIDI_UCX_mpi_comm_free_hook(MPIR_Comm * comm);
 
 #ifdef NETMOD_INLINE
-#define MPIDI_NM_mpi_comm_create_hook MPIDI_UCX_mpi_comm_create_hook
+#define MPIDI_NM_mpi_comm_commit_pre_hook MPIDI_UCX_mpi_comm_commit_pre_hook
+#define MPIDI_NM_mpi_comm_commit_post_hook MPIDI_UCX_mpi_comm_commit_post_hook
 #define MPIDI_NM_mpi_comm_free_hook MPIDI_UCX_mpi_comm_free_hook
 #endif
 

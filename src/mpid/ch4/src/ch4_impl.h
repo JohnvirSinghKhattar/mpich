@@ -1,18 +1,13 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef CH4_IMPL_H_INCLUDED
 #define CH4_IMPL_H_INCLUDED
 
 #include "ch4_types.h"
-#include "mpidig.h"
+#include "mpidig_am.h"
 #include "mpidu_shm.h"
 
 int MPIDI_Progress_test(int flags);
@@ -112,8 +107,9 @@ MPL_STATIC_INLINE_PREFIX void MPIDIU_request_complete(MPIR_Request * req)
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIU_REQUEST_COMPLETE);
 
     MPIR_cc_decr(req->cc_ptr, &incomplete);
-    if (!incomplete)
+    if (!incomplete) {
         MPIR_Request_free(req);
+    }
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIU_REQUEST_COMPLETE);
 }
@@ -401,18 +397,50 @@ static inline int MPIDIU_valid_group_rank(MPIR_Comm * comm, int rank, MPIR_Group
  * ALLFUNC_MUTEX lock forever is to insert YIELD in each loop. We choose to
  * insert it here for simplicity, but this might not be the best place. One
  * needs to investigate the appropriate place to yield the lock. */
+/* NOTE: Taking off VCI lock is necessary to avoid recursive locking and allow
+ * more granular per-vci locks */
+/* TODO: MPIDI_global.vci_lock probably will be changed into granular generic lock
+ */
 
 #define MPIDIU_PROGRESS()                                   \
     do {                                                        \
+        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock); \
         mpi_errno = MPID_Progress_test();                       \
+        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock); \
         MPIR_ERR_CHECK(mpi_errno);  \
         MPID_THREAD_CS_YIELD(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX); \
     } while (0)
 
+/* Optimized versions to avoid exessive locking/unlocking */
+/* FIXME: use inline function rather macros for cleaner semantics */
+
 #define MPIDIU_PROGRESS_WHILE(cond)         \
     do {                                        \
-        while (cond)                            \
-            MPIDIU_PROGRESS();              \
+        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock); \
+        while (cond) {                          \
+            mpi_errno = MPID_Progress_test();   \
+            if (mpi_errno) break;               \
+            MPID_THREAD_CS_YIELD(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX); \
+        } \
+        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock); \
+        MPIR_ERR_CHECK(mpi_errno);              \
+    } while (0)
+
+/* This macro is refactored for original code that progress in a do-while loop
+ * NOTE: it's already inside the progress lock and it is calling progress again.
+ *       To avoid recursive locking, we yield the lock here.
+ * TODO: Can we consolidate with previous macro? Double check the reasoning.
+ */
+#define MPIDIU_PROGRESS_DO_WHILE(cond) \
+    do {                                        \
+        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock); \
+        do {                          \
+            mpi_errno = MPID_Progress_test();   \
+            if (mpi_errno) break;               \
+            MPID_THREAD_CS_YIELD(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX); \
+        } while (cond); \
+        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock); \
+        MPIR_ERR_CHECK(mpi_errno);              \
     } while (0)
 
 #ifdef HAVE_ERROR_CHECKING
@@ -586,10 +614,10 @@ static inline int MPIDIU_valid_group_rank(MPIR_Comm * comm, int rank, MPIR_Group
 */
 static inline uintptr_t MPIDIG_win_base_at_origin(const MPIR_Win * win, int target_rank)
 {
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_WIN_BASE_AT_ORIGIN);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_WIN_BASE_AT_ORIGIN);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_WIN_BASE_AT_ORIGIN);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_WIN_BASE_AT_ORIGIN);
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_WIN_BASE_AT_ORIGIN);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_WIN_BASE_AT_ORIGIN);
 
     /* TODO: In future we may want to calculate the full virtual address
      * in the target at the origin side. It can be done by looking at
@@ -924,9 +952,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_compute_acc_op(void *source_buf, int source_
         (*uop) (source_buf, target_buf, &source_count, &source_dtp);
     } else {
         /* derived datatype */
-        MPL_IOV *typerep_vec;
-        int vec_len, i, count;
-        MPI_Aint type_extent, type_size, src_type_stride;
+        struct iovec *typerep_vec;
+        int i, count;
+        MPI_Aint vec_len, type_extent, type_size, src_type_stride;
         MPI_Datatype type;
         MPIR_Datatype *dtp;
         MPI_Aint curr_len;
@@ -937,8 +965,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_compute_acc_op(void *source_buf, int source_
         MPIR_Assert(dtp != NULL);
         vec_len = dtp->max_contig_blocks * target_count + 1;
         /* +1 needed because Rob says so */
-        typerep_vec = (MPL_IOV *)
-            MPL_malloc(vec_len * sizeof(MPL_IOV), MPL_MEM_RMA);
+        typerep_vec = (struct iovec *)
+            MPL_malloc(vec_len * sizeof(struct iovec), MPL_MEM_RMA);
         /* --BEGIN ERROR HANDLING-- */
         if (!typerep_vec) {
             mpi_errno =
@@ -948,8 +976,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_compute_acc_op(void *source_buf, int source_
         }
         /* --END ERROR HANDLING-- */
 
-        int actual_iov_len;
-        MPI_Aint actual_iov_bytes;
+        MPI_Aint actual_iov_len, actual_iov_bytes;
         MPIR_Typerep_to_iov(NULL, target_count, target_dtp, 0, typerep_vec, vec_len,
                             source_count * source_dtp_size, &actual_iov_len, &actual_iov_bytes);
         vec_len = actual_iov_len;
@@ -969,14 +996,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_compute_acc_op(void *source_buf, int source_
             src_type_stride = source_dtp_extent;
 
         i = 0;
-        curr_loc = typerep_vec[0].MPL_IOV_BUF;
-        curr_len = typerep_vec[0].MPL_IOV_LEN;
+        curr_loc = typerep_vec[0].iov_base;
+        curr_len = typerep_vec[0].iov_len;
         accumulated_count = 0;
         while (i != vec_len) {
             if (curr_len < type_size) {
                 MPIR_Assert(i != vec_len);
                 i++;
-                curr_len += typerep_vec[i].MPL_IOV_LEN;
+                curr_len += typerep_vec[i].iov_len;
                 continue;
             }
 
@@ -988,8 +1015,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_compute_acc_op(void *source_buf, int source_
             if (curr_len % type_size == 0) {
                 i++;
                 if (i != vec_len) {
-                    curr_loc = typerep_vec[i].MPL_IOV_BUF;
-                    curr_len = typerep_vec[i].MPL_IOV_LEN;
+                    curr_loc = typerep_vec[i].iov_base;
+                    curr_len = typerep_vec[i].iov_len;
                 }
             } else {
                 curr_loc = (void *) ((char *) curr_loc + type_extent * count);

@@ -1,12 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpl.h"
@@ -32,7 +26,8 @@ MPIDI_NM_funcs_t MPIDI_NM_ofi_funcs = {
     .get_vci_attr = MPIDI_OFI_get_vci_attr,
     .upids_to_lupids = MPIDI_OFI_upids_to_lupids,
     .create_intercomm_from_lpids = MPIDI_OFI_create_intercomm_from_lpids,
-    .mpi_comm_create_hook = MPIDI_OFI_mpi_comm_create_hook,
+    .mpi_comm_commit_pre_hook = MPIDI_OFI_mpi_comm_commit_pre_hook,
+    .mpi_comm_commit_post_hook = MPIDI_OFI_mpi_comm_commit_post_hook,
     .mpi_comm_free_hook = MPIDI_OFI_mpi_comm_free_hook,
     /* Window initialization/cleanup routines */
     .mpi_win_create_hook = MPIDI_OFI_mpi_win_create_hook,

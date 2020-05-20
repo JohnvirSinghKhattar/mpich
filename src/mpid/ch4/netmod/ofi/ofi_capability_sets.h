@@ -1,13 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef OFI_CAPABILITY_SETS_H_INCLUDED
 #define OFI_CAPABILITY_SETS_H_INCLUDED
 
@@ -85,6 +80,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
  * MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS Use a progress thread for normal data messages
  * MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS Use a progress thread for control messages
  * MPIDI_OFI_ENABLE_PT2PT_NOPACK       Allow sending messages without packing
+ * MPIDI_OFI_ENABLE_HMEM               Support transfers to and from device memory
  * MPIDI_OFI_NUM_AM_BUFFERS            Number of buffers available for active messages
  * MPIDI_OFI_CONTEXT_BITS              The number of bits used for the context ID in an OFI message
  * MPIDI_OFI_SOURCE_BITS               The number of bits used for the source rank in an OFI message
@@ -93,7 +89,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
  * MPIDI_OFI_MINOR_VERSION             The minor API version of libfabric required
  *
  * === Compile time only ===
- * MPIDI_OFI_IOVEC_ALIGN               Required alignment for iovecs
  * The first four values an optimization to avoid calculating this value every time they are needed.
  * They can be calculated from the bits above.
  * MPIDI_OFI_PROTOCOL_MASK             The bitmask used to extract the protocol from the match_bits in an OFI message
@@ -129,6 +124,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_PSM2 MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_PSM2  MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_PT2PT_NOPACK_PSM2       MPIDI_OFI_ON
+#define MPIDI_OFI_ENABLE_HMEM_PSM2               MPIDI_OFI_OFF
 #define MPIDI_OFI_NUM_AM_BUFFERS_PSM2            MPIDI_OFI_MAX_NUM_AM_BUFFERS
 #define MPIDI_OFI_CONTEXT_BITS_PSM2              (20)
 #define MPIDI_OFI_SOURCE_BITS_PSM2               (0)
@@ -151,10 +147,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_ENABLE_RMA                MPIDI_OFI_ENABLE_RMA_PSM2
 #define MPIDI_OFI_ENABLE_ATOMICS            MPIDI_OFI_ENABLE_ATOMICS_PSM2
 #define MPIDI_OFI_FETCH_ATOMIC_IOVECS       MPIDI_OFI_FETCH_ATOMIC_IOVECS_PSM2
-#define MPIDI_OFI_IOVEC_ALIGN               (1)
 #define MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_PSM2
 #define MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS  MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_PSM2
 #define MPIDI_OFI_ENABLE_PT2PT_NOPACK       MPIDI_OFI_ENABLE_PT2PT_NOPACK_PSM2
+#define MPIDI_OFI_ENABLE_HMEM               MPIDI_OFI_ENABLE_HMEM_PSM2
 #define MPIDI_OFI_NUM_AM_BUFFERS            MPIDI_OFI_NUM_AM_BUFFERS_PSM2
 #define MPIDI_OFI_PROTOCOL_MASK             (0x00E0000000000000ULL)
 #define MPIDI_OFI_CONTEXT_MASK              (0x000FFFFF00000000ULL)
@@ -194,6 +190,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_SOCKETS MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_SOCKETS  MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_PT2PT_NOPACK_SOCKETS       MPIDI_OFI_ON
+#define MPIDI_OFI_ENABLE_HMEM_SOCKETS               MPIDI_OFI_OFF
 #define MPIDI_OFI_NUM_AM_BUFFERS_SOCKETS            MPIDI_OFI_MAX_NUM_AM_BUFFERS
 #define MPIDI_OFI_CONTEXT_BITS_SOCKETS              (20)
 #define MPIDI_OFI_SOURCE_BITS_SOCKETS               (0)
@@ -216,10 +213,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_ENABLE_RMA                MPIDI_OFI_ENABLE_RMA_SOCKETS
 #define MPIDI_OFI_ENABLE_ATOMICS            MPIDI_OFI_ENABLE_ATOMICS_SOCKETS
 #define MPIDI_OFI_FETCH_ATOMIC_IOVECS       MPIDI_OFI_FETCH_ATOMIC_IOVECS_SOCKETS
-#define MPIDI_OFI_IOVEC_ALIGN               (1)
 #define MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_SOCKETS
 #define MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS  MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_SOCKETS
 #define MPIDI_OFI_ENABLE_PT2PT_NOPACK       MPIDI_OFI_ENABLE_PT2PT_NOPACK_SOCKETS
+#define MPIDI_OFI_ENABLE_HMEM               MPIDI_OFI_ENABLE_HMEM_SOCKETS
 #define MPIDI_OFI_NUM_AM_BUFFERS            MPIDI_OFI_NUM_AM_BUFFERS_SOCKETS
 #define MPIDI_OFI_PROTOCOL_MASK             (0x00E0000000000000ULL)
 #define MPIDI_OFI_CONTEXT_MASK              (0x000FFFFF00000000ULL)
@@ -259,6 +256,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_BGQ MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_BGQ  MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_PT2PT_NOPACK_BGQ       MPIDI_OFI_OFF
+#define MPIDI_OFI_ENABLE_HMEM_BGQ               MPIDI_OFI_OFF
 #define MPIDI_OFI_NUM_AM_BUFFERS_BGQ            MPIDI_OFI_MAX_NUM_AM_BUFFERS
 #define MPIDI_OFI_CONTEXT_BITS_BGQ              (20)
 #define MPIDI_OFI_SOURCE_BITS_BGQ               (0)
@@ -281,10 +279,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_ENABLE_RMA                MPIDI_OFI_ENABLE_RMA_BGQ
 #define MPIDI_OFI_ENABLE_ATOMICS            MPIDI_OFI_ENABLE_ATOMICS_BGQ
 #define MPIDI_OFI_FETCH_ATOMIC_IOVECS       MPIDI_OFI_FETCH_ATOMIC_IOVECS_BGQ
-#define MPIDI_OFI_IOVEC_ALIGN               (1)
 #define MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_BGQ
 #define MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS  MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_BGQ
 #define MPIDI_OFI_ENABLE_PT2PT_NOPACK       MPIDI_OFI_ENABLE_PT2PT_NOPACK_BGQ
+#define MPIDI_OFI_ENABLE_HMEM               MPIDI_OFI_ENABLE_HMEM_BGQ
 #define MPIDI_OFI_NUM_AM_BUFFERS            MPIDI_OFI_NUM_AM_BUFFERS_BGQ
 #define MPIDI_OFI_PROTOCOL_MASK             (0x00E0000000000000ULL)
 #define MPIDI_OFI_CONTEXT_MASK              (0x000FFFFF00000000ULL)
@@ -324,6 +322,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_RXM    MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_RXM MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_PT2PT_NOPACK_RXM          MPIDI_OFI_ON
+#define MPIDI_OFI_ENABLE_HMEM_RXM                  MPIDI_OFI_OFF
 #define MPIDI_OFI_NUM_AM_BUFFERS_RXM               MPIDI_OFI_MAX_NUM_AM_BUFFERS
 #define MPIDI_OFI_CONTEXT_BITS_RXM                 (20)
 #define MPIDI_OFI_SOURCE_BITS_RXM                  (0)
@@ -346,10 +345,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_ENABLE_RMA                    MPIDI_OFI_ENABLE_RMA_RXM
 #define MPIDI_OFI_ENABLE_ATOMICS                MPIDI_OFI_ENABLE_ATOMICS_RXM
 #define MPIDI_OFI_FETCH_ATOMIC_IOVECS           MPIDI_OFI_FETCH_ATOMIC_IOVECS_RXM
-#define MPIDI_OFI_IOVEC_ALIGN                   (1)
 #define MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS     MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_RXM
 #define MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS  MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_RXM
 #define MPIDI_OFI_ENABLE_PT2PT_NOPACK           MPIDI_OFI_ENABLE_PT2PT_NOPACK_RXM
+#define MPIDI_OFI_ENABLE_HMEM                   MPIDI_OFI_ENABLE_HMEM_RXM
 #define MPIDI_OFI_NUM_AM_BUFFERS                MPIDI_OFI_NUM_AM_BUFFERS_RXM
 #define MPIDI_OFI_PROTOCOL_MASK                 (0x00E0000000000000ULL)
 #define MPIDI_OFI_CONTEXT_MASK                  (0x000FFFFF00000000ULL)
@@ -383,10 +382,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_ENABLE_AM_DEFAULT                 MPIDI_OFI_ON
 #define MPIDI_OFI_ENABLE_ATOMICS_DEFAULT            MPIDI_OFI_ENABLE_RMA_DEFAULT
 #define MPIDI_OFI_FETCH_ATOMIC_IOVECS_DEFAULT       1
-#define MPIDI_OFI_IOVEC_ALIGN_DEFAULT               (1)
 #define MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_DEFAULT MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_DEFAULT  MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_PT2PT_NOPACK_DEFAULT       MPIDI_OFI_ON
+#define MPIDI_OFI_ENABLE_HMEM_DEFAULT               MPIDI_OFI_OFF
 #define MPIDI_OFI_NUM_AM_BUFFERS_DEFAULT            MPIDI_OFI_MAX_NUM_AM_BUFFERS
 #define MPIDI_OFI_PROTOCOL_MASK_DEFAULT             (0x00E0000000000000ULL)
 #define MPIDI_OFI_CONTEXT_MASK_DEFAULT              (0x000FFFFF00000000ULL)
@@ -417,10 +416,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_ENABLE_AM_MINIMAL                 MPIDI_OFI_ON
 #define MPIDI_OFI_ENABLE_ATOMICS_MINIMAL            MPIDI_OFI_ENABLE_RMA_MINIMAL
 #define MPIDI_OFI_FETCH_ATOMIC_IOVECS_MINIMAL       1
-#define MPIDI_OFI_IOVEC_ALIGN_MINIMAL               (1)
 #define MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS_MINIMAL MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS_MINIMAL  MPIDI_OFI_OFF
 #define MPIDI_OFI_ENABLE_PT2PT_NOPACK_MINIMAL       MPIDI_OFI_ON
+#define MPIDI_OFI_ENABLE_HMEM_MINIMAL               MPIDI_OFI_OFF
 #define MPIDI_OFI_NUM_AM_BUFFERS_MINIMAL            MPIDI_OFI_MAX_NUM_AM_BUFFERS
 #define MPIDI_OFI_PROTOCOL_MASK_MINIMAL             (0xE000000000000000ULL)     /* This will be a problem for providers that require all 64 match bits. */
 #define MPIDI_OFI_CONTEXT_MASK_MINIMAL              (0x0FFFF00000000000ULL)
@@ -455,10 +454,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_get_set_number(const char *set_name)
 #define MPIDI_OFI_ENABLE_RMA                MPIDI_OFI_global.settings.enable_rma
 #define MPIDI_OFI_ENABLE_ATOMICS            MPIDI_OFI_global.settings.enable_atomics
 #define MPIDI_OFI_FETCH_ATOMIC_IOVECS       MPIDI_OFI_global.settings.fetch_atomic_iovecs
-#define MPIDI_OFI_IOVEC_ALIGN               (1) /* Compile time configuration only */
 #define MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS MPIDI_OFI_global.settings.enable_data_auto_progress
 #define MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS  MPIDI_OFI_global.settings.enable_control_auto_progress
 #define MPIDI_OFI_ENABLE_PT2PT_NOPACK       MPIDI_OFI_global.settings.enable_pt2pt_nopack
+#define MPIDI_OFI_ENABLE_HMEM               MPIDI_OFI_global.settings.enable_hmem
 #define MPIDI_OFI_NUM_AM_BUFFERS            MPIDI_OFI_global.settings.num_am_buffers
 #define MPIDI_OFI_CONTEXT_BITS              MPIDI_OFI_global.settings.context_bits
 #define MPIDI_OFI_SOURCE_BITS               MPIDI_OFI_global.settings.source_bits

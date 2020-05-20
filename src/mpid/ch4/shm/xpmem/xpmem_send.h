@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2019 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #ifndef XPMEM_SEND_H_INCLUDED
@@ -53,12 +52,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_XPMEM_lmt_isend(const void *buf, MPI_Aint cou
     slmt_req_hdr->src_rank = comm->rank;
     slmt_req_hdr->tag = tag;
     slmt_req_hdr->context_id = comm->context_id + context_offset;
-
-    XPMEM_TRACE("lmt_isend: shm ctrl_id %d, src_offset 0x%lx, data_sz 0x%lx, sreq_ptr 0x%lx, "
-                "src_lrank %d, match info[dest %d, src_rank %d, tag %d, context_id 0x%x]\n",
-                MPIDI_SHM_XPMEM_SEND_LMT_RTS, slmt_req_hdr->src_offset,
-                slmt_req_hdr->data_sz, slmt_req_hdr->sreq_ptr, slmt_req_hdr->src_lrank,
-                rank, slmt_req_hdr->src_rank, slmt_req_hdr->tag, slmt_req_hdr->context_id);
 
     mpi_errno = MPIDI_SHM_do_ctrl_send(rank, comm, MPIDI_SHM_XPMEM_SEND_LMT_RTS, &ctrl_hdr);
     MPIR_ERR_CHECK(mpi_errno);

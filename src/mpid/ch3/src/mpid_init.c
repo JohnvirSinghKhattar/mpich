@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidimpl.h"
@@ -263,7 +262,7 @@ static int init_spawn(void)
 #ifndef MPIDI_CH3_HAS_NO_DYNAMIC_PROCESS
 
     /* FIXME: To allow just the "root" process to
-       request the port and then use MPIR_Bcast_intra_auto to
+       request the port and then use MPIR_Bcast_allcomm_auto to
        distribute it to the rest of the processes,
        we need to perform the Bcast after MPI is
        otherwise initialized.  We could do this

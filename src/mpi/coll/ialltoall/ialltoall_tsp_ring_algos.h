@@ -1,12 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2017 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* Header protection (i.e., IALLTOALL_TSP_ALGOS_H_INCLUDED) is
@@ -179,7 +173,7 @@ int MPIR_TSP_Ialltoall_sched_intra_ring(const void *sendbuf, int sendcount, MPI_
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIR_TSP_IALLTOALL_SCHED_INTRA_RING);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIR_TSP_IALLTOALL_SCHED_INTRA_RING);
     return mpi_errno;
   fn_fail:
     goto fn_exit;

@@ -1,21 +1,15 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef POSIX_COLL_H_INCLUDED
 #define POSIX_COLL_H_INCLUDED
 
 #include "posix_impl.h"
 #include "ch4_impl.h"
-#include "ch4_coll_select.h"
-#include "posix_coll_params.h"
 #include "posix_coll_release_gather.h"
+#include "posix_csel_container.h"
 
 
 /*
@@ -25,7 +19,7 @@ cvars:
     - name        : MPIR_CVAR_BCAST_POSIX_INTRA_ALGORITHM
       category    : COLLECTIVE
       type        : enum
-      default     : mpir
+      default     : auto
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
@@ -33,12 +27,12 @@ cvars:
         Variable to select algorithm for intra-node bcast
         mpir           - Fallback to MPIR collectives
         release_gather - Force shm optimized algo using release, gather primitives
-                         (izem submodule should be build and enabled for this)
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_CH4_POSIX_COLL_SELECTION_TUNING_JSON_FILE)
 
     - name        : MPIR_CVAR_REDUCE_POSIX_INTRA_ALGORITHM
       category    : COLLECTIVE
       type        : enum
-      default     : mpir
+      default     : auto
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
@@ -46,12 +40,12 @@ cvars:
         Variable to select algorithm for intra-node reduce
         mpir           - Fallback to MPIR collectives
         release_gather - Force shm optimized algo using release, gather primitives
-                         (izem submodule should be build and enabled for this)
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_CH4_POSIX_COLL_SELECTION_TUNING_JSON_FILE)
 
     - name        : MPIR_CVAR_ALLREDUCE_POSIX_INTRA_ALGORITHM
       category    : COLLECTIVE
       type        : enum
-      default     : mpir
+      default     : auto
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
@@ -59,52 +53,129 @@ cvars:
         Variable to select algorithm for intra-node allreduce
         mpir           - Fallback to MPIR collectives
         release_gather - Force shm optimized algo using release, gather primitives
-                         (izem submodule should be build and enabled for this)
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_CH4_POSIX_COLL_SELECTION_TUNING_JSON_FILE)
+
+    - name        : MPIR_CVAR_BARRIER_POSIX_INTRA_ALGORITHM
+      category    : COLLECTIVE
+      type        : enum
+      group       : MPIR_CVAR_GROUP_COLL_ALGO
+      default     : auto
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_ALL_EQ
+      description : |-
+        Variable to select algorithm for intra-node barrier
+        mpir           - Fallback to MPIR collectives
+        release_gather - Force shm optimized algo using release, gather primitives
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_CH4_POSIX_COLL_SELECTION_TUNING_JSON_FILE)
 
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
 
-static inline int MPIDI_POSIX_mpi_barrier(MPIR_Comm * comm, MPIR_Errflag_t * errflag,
-                                          const void *ch4_algo_parameters_container_in
-                                          ATTRIBUTE((unused)))
+static inline int MPIDI_POSIX_mpi_barrier(MPIR_Comm * comm, MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
+    MPIR_Csel_coll_sig_s coll_sig = {
+        .coll_type = MPIR_CSEL_COLL_TYPE__BARRIER,
+        .comm_ptr = comm,
+    };
+    MPIDI_POSIX_csel_container_s *cnt;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_MPI_BARRIER);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_MPI_BARRIER);
 
-    mpi_errno = MPIR_Barrier_impl(comm, errflag);
+    switch (MPIR_CVAR_BARRIER_POSIX_INTRA_ALGORITHM) {
+        case MPIR_CVAR_BARRIER_POSIX_INTRA_ALGORITHM_release_gather:
+            MPII_COLLECTIVE_FALLBACK_CHECK(comm->rank, !MPIR_IS_THREADED, mpi_errno,
+                                           "Barrier release_gather cannot be applied.\n");
+            mpi_errno = MPIDI_POSIX_mpi_barrier_release_gather(comm, errflag);
+            break;
+
+        case MPIR_CVAR_BARRIER_POSIX_INTRA_ALGORITHM_mpir:
+            goto fallback;
+
+        case MPIR_CVAR_BARRIER_POSIX_INTRA_ALGORITHM_auto:
+            cnt = MPIR_Csel_search(MPIDI_POSIX_COMM(comm, csel_comm), coll_sig);
+            if (cnt == NULL)
+                goto fallback;
+
+            switch (cnt->id) {
+                case MPIDI_POSIX_CSEL_CONTAINER_TYPE__ALGORITHM__MPIDI_POSIX_mpi_barrier_release_gather:
+                    mpi_errno =
+                        MPIDI_POSIX_mpi_barrier_release_gather(comm, errflag);
+                    break;
+                case MPIDI_POSIX_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Barrier_impl:
+                    goto fallback;
+                default:
+                    MPIR_Assert(0);
+            }
+            break;
+
+        default:
+            MPIR_Assert(0);
+    }
 
     MPIR_ERR_CHECK(mpi_errno);
+    goto fn_exit;
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_MPI_BARRIER);
+  fallback:
+    mpi_errno = MPIR_Barrier_impl(comm, errflag);
+    MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_MPI_BARRIER);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
 }
 
 static inline int MPIDI_POSIX_mpi_bcast(void *buffer, int count, MPI_Datatype datatype,
-                                        int root, MPIR_Comm * comm, MPIR_Errflag_t * errflag,
-                                        const void *ch4_algo_parameters_container_in
-                                        ATTRIBUTE((unused)))
+                                        int root, MPIR_Comm * comm, MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
+    MPIR_Csel_coll_sig_s coll_sig = {
+        .coll_type = MPIR_CSEL_COLL_TYPE__BCAST,
+        .comm_ptr = comm,
+        .u.bcast.buffer = buffer,
+        .u.bcast.count = count,
+        .u.bcast.datatype = datatype,
+        .u.bcast.root = root,
+    };
+    MPIDI_POSIX_csel_container_s *cnt;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_MPI_BCAST);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_MPI_BCAST);
 
     switch (MPIR_CVAR_BCAST_POSIX_INTRA_ALGORITHM) {
         case MPIR_CVAR_BCAST_POSIX_INTRA_ALGORITHM_release_gather:
-            MPII_COLLECTIVE_FALLBACK_CHECK(!MPIR_ThreadInfo.isThreaded);
+            MPII_COLLECTIVE_FALLBACK_CHECK(comm->rank, !MPIR_IS_THREADED, mpi_errno,
+                                           "Bcast release_gather cannot be applied.\n");
             mpi_errno =
                 MPIDI_POSIX_mpi_bcast_release_gather(buffer, count, datatype, root, comm, errflag);
             break;
+
         case MPIR_CVAR_BCAST_POSIX_INTRA_ALGORITHM_mpir:
-            mpi_errno = MPIR_Bcast_impl(buffer, count, datatype, root, comm, errflag);
+            goto fallback;
+
+        case MPIR_CVAR_BCAST_POSIX_INTRA_ALGORITHM_auto:
+            cnt = MPIR_Csel_search(MPIDI_POSIX_COMM(comm, csel_comm), coll_sig);
+            if (cnt == NULL)
+                goto fallback;
+
+            switch (cnt->id) {
+                case MPIDI_POSIX_CSEL_CONTAINER_TYPE__ALGORITHM__MPIDI_POSIX_mpi_bcast_release_gather:
+                    mpi_errno =
+                        MPIDI_POSIX_mpi_bcast_release_gather(buffer, count, datatype, root, comm,
+                                                             errflag);
+                    break;
+                case MPIDI_POSIX_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Bcast_impl:
+                    goto fallback;
+                default:
+                    MPIR_Assert(0);
+            }
             break;
+
         default:
             MPIR_Assert(0);
     }
@@ -125,26 +196,56 @@ static inline int MPIDI_POSIX_mpi_bcast(void *buffer, int count, MPI_Datatype da
 
 static inline int MPIDI_POSIX_mpi_allreduce(const void *sendbuf, void *recvbuf, int count,
                                             MPI_Datatype datatype, MPI_Op op, MPIR_Comm * comm,
-                                            MPIR_Errflag_t * errflag,
-                                            const void *ch4_algo_parameters_container_in
-                                            ATTRIBUTE((unused)))
+                                            MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
+    MPIR_Csel_coll_sig_s coll_sig = {
+        .coll_type = MPIR_CSEL_COLL_TYPE__ALLREDUCE,
+        .comm_ptr = comm,
+        .u.allreduce.sendbuf = sendbuf,
+        .u.allreduce.recvbuf = recvbuf,
+        .u.allreduce.count = count,
+        .u.allreduce.datatype = datatype,
+        .u.allreduce.op = op,
+    };
+    MPIDI_POSIX_csel_container_s *cnt;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_MPI_ALLREDUCE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_MPI_ALLREDUCE);
 
     switch (MPIR_CVAR_ALLREDUCE_POSIX_INTRA_ALGORITHM) {
         case MPIR_CVAR_ALLREDUCE_POSIX_INTRA_ALGORITHM_release_gather:
-            MPII_COLLECTIVE_FALLBACK_CHECK(!MPIR_ThreadInfo.isThreaded &&
-                                           MPIR_Op_is_commutative(op));
+            MPII_COLLECTIVE_FALLBACK_CHECK(comm->rank, !MPIR_IS_THREADED &&
+                                           MPIR_Op_is_commutative(op), mpi_errno,
+                                           "Allreduce release_gather cannot be applied.\n");
             mpi_errno =
                 MPIDI_POSIX_mpi_allreduce_release_gather(sendbuf, recvbuf, count, datatype, op,
                                                          comm, errflag);
             break;
+
         case MPIR_CVAR_ALLREDUCE_POSIX_INTRA_ALGORITHM_mpir:
-            mpi_errno = MPIR_Allreduce_impl(sendbuf, recvbuf, count, datatype, op, comm, errflag);
+            goto fallback;
+
+        case MPIR_CVAR_ALLREDUCE_POSIX_INTRA_ALGORITHM_auto:
+            cnt = MPIR_Csel_search(MPIDI_POSIX_COMM(comm, csel_comm), coll_sig);
+            if (cnt == NULL)
+                goto fallback;
+
+            switch (cnt->id) {
+                case MPIDI_POSIX_CSEL_CONTAINER_TYPE__ALGORITHM__MPIDI_POSIX_mpi_allreduce_release_gather:
+                    mpi_errno =
+                        MPIDI_POSIX_mpi_allreduce_release_gather(sendbuf, recvbuf, count, datatype,
+                                                                 op, comm, errflag);
+                    break;
+
+                case MPIDI_POSIX_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Allreduce_impl:
+                    goto fallback;
+
+                default:
+                    MPIR_Assert(0);
+            }
             break;
+
         default:
             MPIR_Assert(0);
     }
@@ -166,9 +267,7 @@ static inline int MPIDI_POSIX_mpi_allreduce(const void *sendbuf, void *recvbuf, 
 static inline int MPIDI_POSIX_mpi_allgather(const void *sendbuf, int sendcount,
                                             MPI_Datatype sendtype, void *recvbuf, int recvcount,
                                             MPI_Datatype recvtype, MPIR_Comm * comm,
-                                            MPIR_Errflag_t * errflag,
-                                            const void *ch4_algo_parameters_container_in
-                                            ATTRIBUTE((unused)))
+                                            MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -192,9 +291,7 @@ static inline int MPIDI_POSIX_mpi_allgatherv(const void *sendbuf, int sendcount,
                                              MPI_Datatype sendtype, void *recvbuf,
                                              const int *recvcounts, const int *displs,
                                              MPI_Datatype recvtype, MPIR_Comm * comm,
-                                             MPIR_Errflag_t * errflag,
-                                             const void *ch4_algo_parameters_container_in
-                                             ATTRIBUTE((unused)))
+                                             MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -216,9 +313,7 @@ static inline int MPIDI_POSIX_mpi_allgatherv(const void *sendbuf, int sendcount,
 
 static inline int MPIDI_POSIX_mpi_gather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                                          void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                                         int root, MPIR_Comm * comm, MPIR_Errflag_t * errflag,
-                                         const void *ch4_algo_parameters_container_in
-                                         ATTRIBUTE((unused)))
+                                         int root, MPIR_Comm * comm, MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -241,9 +336,7 @@ static inline int MPIDI_POSIX_mpi_gather(const void *sendbuf, int sendcount, MPI
 static inline int MPIDI_POSIX_mpi_gatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                                           void *recvbuf, const int *recvcounts, const int *displs,
                                           MPI_Datatype recvtype, int root, MPIR_Comm * comm,
-                                          MPIR_Errflag_t * errflag,
-                                          const void *ch4_algo_parameters_container_in
-                                          ATTRIBUTE((unused)))
+                                          MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -266,9 +359,7 @@ static inline int MPIDI_POSIX_mpi_gatherv(const void *sendbuf, int sendcount, MP
 
 static inline int MPIDI_POSIX_mpi_scatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                                           void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                                          int root, MPIR_Comm * comm, MPIR_Errflag_t * errflag,
-                                          const void *ch4_algo_parameters_container_in
-                                          ATTRIBUTE((unused)))
+                                          int root, MPIR_Comm * comm, MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -291,9 +382,7 @@ static inline int MPIDI_POSIX_mpi_scatter(const void *sendbuf, int sendcount, MP
 static inline int MPIDI_POSIX_mpi_scatterv(const void *sendbuf, const int *sendcounts,
                                            const int *displs, MPI_Datatype sendtype,
                                            void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                                           int root, MPIR_Comm * comm, MPIR_Errflag_t * errflag,
-                                           const void *ch4_algo_parameters_container_in
-                                           ATTRIBUTE((unused)))
+                                           int root, MPIR_Comm * comm, MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -316,9 +405,7 @@ static inline int MPIDI_POSIX_mpi_scatterv(const void *sendbuf, const int *sendc
 static inline int MPIDI_POSIX_mpi_alltoall(const void *sendbuf, int sendcount,
                                            MPI_Datatype sendtype, void *recvbuf, int recvcount,
                                            MPI_Datatype recvtype, MPIR_Comm * comm,
-                                           MPIR_Errflag_t * errflag,
-                                           const void *ch4_algo_parameters_container_in
-                                           ATTRIBUTE((unused)))
+                                           MPIR_Errflag_t * errflag)
 {
     int mpi_errno;
 
@@ -342,9 +429,7 @@ static inline int MPIDI_POSIX_mpi_alltoallv(const void *sendbuf, const int *send
                                             const int *sdispls, MPI_Datatype sendtype,
                                             void *recvbuf, const int *recvcounts,
                                             const int *rdispls, MPI_Datatype recvtype,
-                                            MPIR_Comm * comm, MPIR_Errflag_t * errflag,
-                                            const void *ch4_algo_parameters_container_in
-                                            ATTRIBUTE((unused)))
+                                            MPIR_Comm * comm, MPIR_Errflag_t * errflag)
 {
     int mpi_errno;
 
@@ -369,9 +454,7 @@ static inline int MPIDI_POSIX_mpi_alltoallw(const void *sendbuf, const int sendc
                                             const int sdispls[], const MPI_Datatype sendtypes[],
                                             void *recvbuf, const int recvcounts[],
                                             const int rdispls[], const MPI_Datatype recvtypes[],
-                                            MPIR_Comm * comm, MPIR_Errflag_t * errflag,
-                                            const void *ch4_algo_parameters_container_in
-                                            ATTRIBUTE((unused)))
+                                            MPIR_Comm * comm, MPIR_Errflag_t * errflag)
 {
     int mpi_errno;
 
@@ -394,27 +477,57 @@ static inline int MPIDI_POSIX_mpi_alltoallw(const void *sendbuf, const int sendc
 
 static inline int MPIDI_POSIX_mpi_reduce(const void *sendbuf, void *recvbuf, int count,
                                          MPI_Datatype datatype, MPI_Op op, int root,
-                                         MPIR_Comm * comm, MPIR_Errflag_t * errflag,
-                                         const void *ch4_algo_parameters_container_in
-                                         ATTRIBUTE((unused)))
+                                         MPIR_Comm * comm, MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
+    MPIR_Csel_coll_sig_s coll_sig = {
+        .coll_type = MPIR_CSEL_COLL_TYPE__REDUCE,
+        .comm_ptr = comm,
+        .u.reduce.sendbuf = sendbuf,
+        .u.reduce.recvbuf = recvbuf,
+        .u.reduce.count = count,
+        .u.reduce.datatype = datatype,
+        .u.reduce.op = op,
+        .u.reduce.root = root,
+    };
+    MPIDI_POSIX_csel_container_s *cnt;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_MPI_REDUCE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_MPI_REDUCE);
 
     switch (MPIR_CVAR_REDUCE_POSIX_INTRA_ALGORITHM) {
         case MPIR_CVAR_REDUCE_POSIX_INTRA_ALGORITHM_release_gather:
-            MPII_COLLECTIVE_FALLBACK_CHECK(!MPIR_ThreadInfo.isThreaded &&
-                                           MPIR_Op_is_commutative(op));
+            MPII_COLLECTIVE_FALLBACK_CHECK(comm->rank, !MPIR_IS_THREADED &&
+                                           MPIR_Op_is_commutative(op), mpi_errno,
+                                           "Reduce release_gather cannot be applied.\n");
             mpi_errno =
                 MPIDI_POSIX_mpi_reduce_release_gather(sendbuf, recvbuf, count, datatype, op, root,
                                                       comm, errflag);
             break;
+
         case MPIR_CVAR_REDUCE_POSIX_INTRA_ALGORITHM_mpir:
-            mpi_errno = MPIR_Reduce_impl(sendbuf, recvbuf, count, datatype, op,
-                                         root, comm, errflag);
+            goto fallback;
+
+        case MPIR_CVAR_REDUCE_POSIX_INTRA_ALGORITHM_auto:
+            cnt = MPIR_Csel_search(MPIDI_POSIX_COMM(comm, csel_comm), coll_sig);
+            if (cnt == NULL)
+                goto fallback;
+
+            switch (cnt->id) {
+                case MPIDI_POSIX_CSEL_CONTAINER_TYPE__ALGORITHM__MPIDI_POSIX_mpi_reduce_release_gather:
+                    mpi_errno =
+                        MPIDI_POSIX_mpi_reduce_release_gather(sendbuf, recvbuf, count, datatype, op,
+                                                              root, comm, errflag);
+                    break;
+
+                case MPIDI_POSIX_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Reduce_impl:
+                    goto fallback;
+
+                default:
+                    MPIR_Assert(0);
+            }
             break;
+
         default:
             MPIR_Assert(0);
     }
@@ -436,9 +549,7 @@ static inline int MPIDI_POSIX_mpi_reduce(const void *sendbuf, void *recvbuf, int
 static inline int MPIDI_POSIX_mpi_reduce_scatter(const void *sendbuf, void *recvbuf,
                                                  const int recvcounts[], MPI_Datatype datatype,
                                                  MPI_Op op, MPIR_Comm * comm,
-                                                 MPIR_Errflag_t * errflag,
-                                                 const void *ch4_algo_parameters_container_in
-                                                 ATTRIBUTE((unused)))
+                                                 MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -460,9 +571,7 @@ static inline int MPIDI_POSIX_mpi_reduce_scatter(const void *sendbuf, void *recv
 static inline int MPIDI_POSIX_mpi_reduce_scatter_block(const void *sendbuf, void *recvbuf,
                                                        int recvcount, MPI_Datatype datatype,
                                                        MPI_Op op, MPIR_Comm * comm,
-                                                       MPIR_Errflag_t * errflag,
-                                                       const void *ch4_algo_parameters_container_in
-                                                       ATTRIBUTE((unused)))
+                                                       MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -483,9 +592,7 @@ static inline int MPIDI_POSIX_mpi_reduce_scatter_block(const void *sendbuf, void
 
 static inline int MPIDI_POSIX_mpi_scan(const void *sendbuf, void *recvbuf, int count,
                                        MPI_Datatype datatype, MPI_Op op, MPIR_Comm * comm,
-                                       MPIR_Errflag_t * errflag,
-                                       const void *ch4_algo_parameters_container_in
-                                       ATTRIBUTE((unused)))
+                                       MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -506,9 +613,7 @@ static inline int MPIDI_POSIX_mpi_scan(const void *sendbuf, void *recvbuf, int c
 
 static inline int MPIDI_POSIX_mpi_exscan(const void *sendbuf, void *recvbuf, int count,
                                          MPI_Datatype datatype, MPI_Op op, MPIR_Comm * comm,
-                                         MPIR_Errflag_t * errflag,
-                                         const void *ch4_algo_parameters_container_in
-                                         ATTRIBUTE((unused)))
+                                         MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 

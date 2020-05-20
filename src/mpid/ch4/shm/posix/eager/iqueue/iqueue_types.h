@@ -1,13 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2020 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef POSIX_EAGER_IQUEUE_TYPES_H_INCLUDED
 #define POSIX_EAGER_IQUEUE_TYPES_H_INCLUDED
 
@@ -38,7 +33,7 @@ struct MPIDI_POSIX_eager_iqueue_cell {
 /* The terminal describes each of the iqueues, mostly by tracking where the head of the queue is at
  * any given time. */
 typedef union {
-    volatile uintptr_t head;    /* head of inverted queue of cells */
+    MPL_atomic_ptr_t head;      /* head of inverted queue of cells */
     uint8_t pad[MPIDU_SHM_CACHE_LINE_LEN];      /* Padding to make sure the terminals are cache
                                                  * aligned */
 } MPIDI_POSIX_eager_iqueue_terminal_t;

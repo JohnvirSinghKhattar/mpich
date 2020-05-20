@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -13,26 +12,28 @@ cvars:
     - name        : MPIR_CVAR_INEIGHBOR_ALLGATHERV_INTRA_ALGORITHM
       category    : COLLECTIVE
       type        : enum
-      default     : sched_auto
+      default     : auto
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select ineighbor_allgatherv algorithm
-        sched_auto            - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
+        sched_auto - Internal algorithm selection for sched-based algorithms
         sched_linear          - Force linear algorithm
         gentran_linear        - Force generic transport based linear algorithm
 
     - name        : MPIR_CVAR_INEIGHBOR_ALLGATHERV_INTER_ALGORITHM
       category    : COLLECTIVE
       type        : enum
-      default     : sched_auto
+      default     : auto
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select ineighbor_allgatherv algorithm
-        sched_auto            - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
+        sched_auto - Internal algorithm selection for sched-based algorithms
         sched_linear          - Force linear algorithm
         gentran_linear        - Force generic transport based linear algorithm
 
@@ -74,6 +75,64 @@ int MPI_Ineighbor_allgatherv(const void *sendbuf, int sendcount, MPI_Datatype se
 #ifndef MPICH_MPI_FROM_PMPI
 #undef MPI_Ineighbor_allgatherv
 #define MPI_Ineighbor_allgatherv PMPI_Ineighbor_allgatherv
+
+
+int MPIR_Ineighbor_allgatherv_allcomm_auto(const void *sendbuf, int sendcount,
+                                           MPI_Datatype sendtype, void *recvbuf,
+                                           const int recvcounts[], const int displs[],
+                                           MPI_Datatype recvtype, MPIR_Comm * comm_ptr,
+                                           MPIR_Request ** request)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_Csel_coll_sig_s coll_sig = {
+        .coll_type = MPIR_CSEL_COLL_TYPE__INEIGHBOR_ALLGATHERV,
+        .comm_ptr = comm_ptr,
+
+        .u.ineighbor_allgatherv.sendbuf = sendbuf,
+        .u.ineighbor_allgatherv.sendcount = sendcount,
+        .u.ineighbor_allgatherv.sendtype = sendtype,
+        .u.ineighbor_allgatherv.recvbuf = recvbuf,
+        .u.ineighbor_allgatherv.recvcounts = recvcounts,
+        .u.ineighbor_allgatherv.displs = displs,
+        .u.ineighbor_allgatherv.recvtype = recvtype,
+    };
+
+    MPII_Csel_container_s *cnt = MPIR_Csel_search(comm_ptr->csel_comm, coll_sig);
+    MPIR_Assert(cnt);
+
+    switch (cnt->id) {
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ineighbor_allgatherv_allcomm_gentran_linear:
+            mpi_errno =
+                MPIR_Ineighbor_allgatherv_allcomm_gentran_linear(sendbuf, sendcount, sendtype,
+                                                                 recvbuf, recvcounts, displs,
+                                                                 recvtype, comm_ptr, request);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ineighbor_allgatherv_intra_sched_auto:
+            MPII_SCHED_WRAPPER(MPIR_Ineighbor_allgatherv_intra_sched_auto, comm_ptr, request,
+                               sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ineighbor_allgatherv_inter_sched_auto:
+            MPII_SCHED_WRAPPER(MPIR_Ineighbor_allgatherv_inter_sched_auto, comm_ptr, request,
+                               sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ineighbor_allgatherv_allcomm_sched_linear:
+            MPII_SCHED_WRAPPER(MPIR_Ineighbor_allgatherv_allcomm_sched_linear, comm_ptr, request,
+                               sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype);
+            break;
+
+        default:
+            MPIR_Assert(0);
+    }
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
 
 int MPIR_Ineighbor_allgatherv_intra_sched_auto(const void *sendbuf, int sendcount,
                                                MPI_Datatype sendtype, void *recvbuf,
@@ -171,6 +230,13 @@ int MPIR_Ineighbor_allgatherv_impl(const void *sendbuf, int sendcount,
                                    recvtype);
                 break;
 
+            case MPIR_CVAR_INEIGHBOR_ALLGATHERV_INTRA_ALGORITHM_auto:
+                mpi_errno =
+                    MPIR_Ineighbor_allgatherv_allcomm_auto(sendbuf, sendcount, sendtype, recvbuf,
+                                                           recvcounts, displs, recvtype, comm_ptr,
+                                                           request);
+                break;
+
             default:
                 MPIR_Assert(0);
         }
@@ -193,6 +259,13 @@ int MPIR_Ineighbor_allgatherv_impl(const void *sendbuf, int sendcount,
                 MPII_SCHED_WRAPPER(MPIR_Ineighbor_allgatherv_inter_sched_auto, comm_ptr, request,
                                    sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs,
                                    recvtype);
+                break;
+
+            case MPIR_CVAR_INEIGHBOR_ALLGATHERV_INTER_ALGORITHM_auto:
+                mpi_errno =
+                    MPIR_Ineighbor_allgatherv_allcomm_auto(sendbuf, sendcount, sendtype, recvbuf,
+                                                           recvcounts, displs, recvtype, comm_ptr,
+                                                           request);
                 break;
 
             default:
@@ -263,7 +336,6 @@ int MPI_Ineighbor_allgatherv(const void *sendbuf, int sendcount, MPI_Datatype se
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_INEIGHBOR_ALLGATHERV);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_ENTER(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_INEIGHBOR_ALLGATHERV);
 
     /* Validate parameters, especially handles needing to be converted */
@@ -340,7 +412,6 @@ int MPI_Ineighbor_allgatherv(const void *sendbuf, int sendcount, MPI_Datatype se
   fn_exit:
     MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_INEIGHBOR_ALLGATHERV);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_EXIT(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     return mpi_errno;
 
   fn_fail:

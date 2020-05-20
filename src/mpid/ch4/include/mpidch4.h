@@ -1,13 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef MPIDCH4_H_INCLUDED
 #define MPIDCH4_H_INCLUDED
 
@@ -166,9 +161,9 @@ int MPID_Op_commit_hook(MPIR_Op *);
 int MPID_Op_free_hook(MPIR_Op *);
 int MPID_Intercomm_exchange_map(MPIR_Comm *, int, MPIR_Comm *, int, int *, int **, int *);
 int MPID_Create_intercomm_from_lpids(MPIR_Comm *, int, const int[]);
-int MPID_Comm_create_hook(MPIR_Comm *);
+int MPID_Comm_commit_pre_hook(MPIR_Comm *);
 int MPID_Comm_free_hook(MPIR_Comm *);
-int MPID_Coll_comm_init_hook(MPIR_Comm *);
+int MPID_Comm_commit_post_hook(MPIR_Comm *);
 MPL_STATIC_INLINE_PREFIX int MPID_Barrier(MPIR_Comm *, MPIR_Errflag_t *) MPL_STATIC_INLINE_SUFFIX;
 MPL_STATIC_INLINE_PREFIX int MPID_Bcast(void *, int, MPI_Datatype, int, MPIR_Comm *,
                                         MPIR_Errflag_t *) MPL_STATIC_INLINE_SUFFIX;
@@ -313,6 +308,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_av_is_local(MPIDI_av_entry_t * av);
 /* Declare request functions here so netmods can refer to
    them in the NETMOD_INLINE mode */
 #include "ch4_request.h"
+
+/* Active message and generic implementatiions */
+#include "mpidig_am.h"
+#include "mpidch4r.h"
 
 /* Include netmod and shm implementations  */
 /* Prototypes are split from impl to avoid */

@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /*
- * (C) 2019 by Argonne National Laboratory.
- *     See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidimpl.h"
@@ -15,15 +14,14 @@ int MPIDI_XPMEM_ctrl_send_lmt_recv_fin_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *sreq = (MPIR_Request *) ctrl_hdr->xpmem_slmt_recv_fin.req_ptr;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_XPMEM_CTRL_SEND_LMT_RECV_FIN_CB);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_XPMEM_CTRL_SEND_LMT_SEND_FIN_CB);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_RECV_FIN_CB);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_RECV_FIN_CB);
 
-    XPMEM_TRACE("send_lmt_recv_fin_cb: complete sreq %p\n", sreq);
     MPIR_Datatype_release_if_not_builtin(MPIDIG_REQUEST(sreq, datatype));
     MPID_Request_complete(sreq);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_XPMEM_CTRL_SEND_LMT_RECV_FIN_CB);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_RECV_FIN_CB);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -34,10 +32,8 @@ int MPIDI_XPMEM_ctrl_send_lmt_send_fin_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq = (MPIR_Request *) ctrl_hdr->xpmem_slmt_send_fin.req_ptr;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_XPMEM_CTRL_SEND_LMT_SEND_FIN_CB);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_XPMEM_CTRL_SEND_LMT_SEND_FIN_CB);
-
-    XPMEM_TRACE("send_lmt_send_fin_cb: complete rreq %p\n", rreq);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_SEND_FIN_CB);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_SEND_FIN_CB);
 
     /* send_fin_cb can only be triggered in cooperative copy, so
      * MPIDI_XPMEM_REQUEST(rreq, counter_ptr) must be set by receiver */
@@ -46,7 +42,7 @@ int MPIDI_XPMEM_ctrl_send_lmt_send_fin_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
     MPID_Request_complete(rreq);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_XPMEM_CTRL_SEND_LMT_SEND_FIN_CB);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_SEND_FIN_CB);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -61,12 +57,6 @@ int MPIDI_XPMEM_ctrl_send_lmt_rts_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_RTS_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_XPMEM_CTRL_SEND_LMT_RTS_CB);
 
-    XPMEM_TRACE("send_lmt_rts_cb: received src_offset 0x%lx, data_sz 0x%lx, sreq_ptr 0x%lx, "
-                "src_lrank %d, match info[src_rank %d, tag %d, context_id 0x%x]\n",
-                slmt_rts_hdr->src_offset, slmt_rts_hdr->data_sz, slmt_rts_hdr->sreq_ptr,
-                slmt_rts_hdr->src_lrank, slmt_rts_hdr->src_rank, slmt_rts_hdr->tag,
-                slmt_rts_hdr->context_id);
-
     /* Try to match a posted receive request.
      * root_comm cannot be NULL if a posted receive request exists, because
      * we increase its refcount at enqueue time. */
@@ -74,7 +64,7 @@ int MPIDI_XPMEM_ctrl_send_lmt_rts_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
     if (root_comm) {
         while (TRUE) {
             rreq = MPIDIG_dequeue_posted(slmt_rts_hdr->src_rank, slmt_rts_hdr->tag,
-                                         slmt_rts_hdr->context_id,
+                                         slmt_rts_hdr->context_id, 1,
                                          &MPIDIG_COMM(root_comm, posted_list));
 #ifndef MPIDI_CH4_DIRECT_NETMOD
             if (rreq) {
@@ -134,8 +124,6 @@ int MPIDI_XPMEM_ctrl_send_lmt_rts_cb(MPIDI_SHM_ctrl_hdr_t * ctrl_hdr)
             MPIDIG_enqueue_unexp(rreq,
                                  MPIDIG_context_id_to_uelist(MPIDIG_REQUEST(rreq, context_id)));
         }
-
-        XPMEM_TRACE("send_lmt_rts_cb: enqueue unexpected, rreq=%p\n", rreq);
     }
 
   fn_exit:

@@ -1,8 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -20,7 +18,7 @@ cvars:
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select barrier algorithm
-        auto          - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
         nb            - Force nonblocking algorithm
         dissemination - Force dissemination algorithm
 
@@ -33,7 +31,7 @@ cvars:
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select barrier algorithm
-        auto  - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
         bcast - Force bcast algorithm
         nb    - Force nonblocking algorithm
 
@@ -73,44 +71,39 @@ int MPI_Barrier(MPI_Comm comm) __attribute__ ((weak, alias("PMPI_Barrier")));
 #undef MPI_Barrier
 #define MPI_Barrier PMPI_Barrier
 
-int MPIR_Barrier_intra_auto(MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
-{
-    int size, mpi_errno = MPI_SUCCESS;
-    int mpi_errno_ret = MPI_SUCCESS;
 
-    size = comm_ptr->local_size;
-    /* Trivial barriers return immediately */
-    if (size == 1)
-        goto fn_exit;
-
-    if (MPIR_Comm_is_parent_comm(comm_ptr)) {
-        mpi_errno = MPIR_Barrier_intra_smp(comm_ptr, errflag);
-    } else {
-        mpi_errno = MPIR_Barrier_intra_dissemination(comm_ptr, errflag);
-    }
-
-    if (mpi_errno) {
-        /* for communication errors, just record the error but continue */
-        *errflag =
-            MPIX_ERR_PROC_FAILED ==
-            MPIR_ERR_GET_CLASS(mpi_errno) ? MPIR_ERR_PROC_FAILED : MPIR_ERR_OTHER;
-        MPIR_ERR_SET(mpi_errno, *errflag, "**fail");
-        MPIR_ERR_ADD(mpi_errno_ret, mpi_errno);
-    }
-
-  fn_exit:
-    if (mpi_errno_ret)
-        mpi_errno = mpi_errno_ret;
-    else if (*errflag != MPIR_ERR_NONE)
-        MPIR_ERR_SET(mpi_errno, *errflag, "**coll_fail");
-    return mpi_errno;
-}
-
-int MPIR_Barrier_inter_auto(MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
+int MPIR_Barrier_allcomm_auto(MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    mpi_errno = MPIR_Barrier_inter_bcast(comm_ptr, errflag);
+    MPIR_Csel_coll_sig_s coll_sig = {
+        .coll_type = MPIR_CSEL_COLL_TYPE__BARRIER,
+        .comm_ptr = comm_ptr,
+    };
+
+    MPII_Csel_container_s *cnt = MPIR_Csel_search(comm_ptr->csel_comm, coll_sig);
+    MPIR_Assert(cnt);
+
+    switch (cnt->id) {
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Barrier_intra_dissemination:
+            mpi_errno = MPIR_Barrier_intra_dissemination(comm_ptr, errflag);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Barrier_intra_smp:
+            mpi_errno = MPIR_Barrier_intra_smp(comm_ptr, errflag);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Barrier_inter_bcast:
+            mpi_errno = MPIR_Barrier_inter_bcast(comm_ptr, errflag);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Barrier_allcomm_nb:
+            mpi_errno = MPIR_Barrier_allcomm_nb(comm_ptr, errflag);
+            break;
+
+        default:
+            MPIR_Assert(0);
+    }
 
     return mpi_errno;
 }
@@ -129,7 +122,7 @@ int MPIR_Barrier_impl(MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
                 mpi_errno = MPIR_Barrier_allcomm_nb(comm_ptr, errflag);
                 break;
             case MPIR_CVAR_BARRIER_INTRA_ALGORITHM_auto:
-                mpi_errno = MPIR_Barrier_intra_auto(comm_ptr, errflag);
+                mpi_errno = MPIR_Barrier_allcomm_auto(comm_ptr, errflag);
                 break;
             default:
                 MPIR_Assert(0);
@@ -144,7 +137,7 @@ int MPIR_Barrier_impl(MPIR_Comm * comm_ptr, MPIR_Errflag_t * errflag)
                 mpi_errno = MPIR_Barrier_allcomm_nb(comm_ptr, errflag);
                 break;
             case MPIR_CVAR_BARRIER_INTER_ALGORITHM_auto:
-                mpi_errno = MPIR_Barrier_inter_auto(comm_ptr, errflag);
+                mpi_errno = MPIR_Barrier_allcomm_auto(comm_ptr, errflag);
                 break;
             default:
                 MPIR_Assert(0);
@@ -210,7 +203,6 @@ int MPI_Barrier(MPI_Comm comm)
     MPIR_ERRTEST_INITIALIZED_ORDIE();
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_ENTER(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     MPIR_FUNC_TERSE_COLL_ENTER(MPID_STATE_MPI_BARRIER);
 
     /* Validate parameters, especially handles needing to be converted */
@@ -251,7 +243,6 @@ int MPI_Barrier(MPI_Comm comm)
   fn_exit:
     MPIR_FUNC_TERSE_COLL_EXIT(MPID_STATE_MPI_BARRIER);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_EXIT(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     return mpi_errno;
 
   fn_fail:

@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /*      Warning - this test will fail for MPI_PROD & maybe MPI_SUM
  *        if more than 10 MPI processes are used.  Loss of precision
  *        will occur as the number of processors is increased.
@@ -387,7 +387,7 @@ int main(int argc, char **argv)
 
     /* Set errors return so that we can provide better information
      * should a routine reject one of the operand/datatype pairs */
-    MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 
     count = 10;
     /* Allow an argument to override the count.
@@ -455,7 +455,7 @@ int main(int argc, char **argv)
     minloc_test(struct float_test, MPI_FLOAT_INT);
     minloc_test(struct double_test, MPI_DOUBLE_INT);
 
-    MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL);
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL);
     MTest_Finalize(errs);
     return MTestReturnValue(errs);
 }

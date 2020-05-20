@@ -1,8 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 /* style: allow:fprintf:1 sig:0 */
 
 #include "mpiimpl.h"
@@ -130,7 +130,9 @@ int MPI_Finalize(void)
     /* Setting isThreaded to 0 to trick any operations used within
      * MPI_Finalize to think that we are running in a single threaded
      * environment. */
+#ifdef MPICH_IS_THREADED
     MPIR_ThreadInfo.isThreaded = 0;
+#endif
 
     mpi_errno = MPII_finalize_local_proc_attrs();
     MPIR_ERR_CHECK(mpi_errno);
@@ -178,6 +180,7 @@ int MPI_Finalize(void)
     MPII_finalize_memory_tracing();
 
     MPII_thread_mutex_destroy();
+    MPIR_Typerep_finalize();
     MPL_atomic_store_int(&MPIR_Process.mpich_state, MPICH_MPI_STATE__POST_FINALIZED);
 
     /* ... end of body of routine ... */

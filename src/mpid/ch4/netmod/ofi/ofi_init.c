@@ -1,12 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidimpl.h"
@@ -307,6 +301,17 @@ cvars:
         enabled. It the underlying OFI provider supports auto data progress, this value is ignored.
         If the value is -1, this optimization will be turned off.
 
+    - name        : MPIR_CVAR_CH4_OFI_RMA_IOVEC_MAX
+      category    : CH4_OFI
+      type        : int
+      default     : 16384
+      class       : none
+      verbosity   : MPI_T_VERBOSITY_USER_BASIC
+      scope       : MPI_T_SCOPE_LOCAL
+      description : >-
+        Specifies the maximum number of iovecs to allocate for RMA operations
+        to/from noncontiguous buffers.
+
 === END_MPI_T_CVAR_INFO_BLOCK ===
 */
 
@@ -331,8 +336,8 @@ static int conn_manager_init()
 {
     int mpi_errno = MPI_SUCCESS, i;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_CONN_MANAGER_INIT);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_CONN_MANAGER_INIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_CONN_MANAGER_INIT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_CONN_MANAGER_INIT);
 
     MPIDI_OFI_global.conn_mgr.mmapped_size = 8 * 4 * 1024;
     MPIDI_OFI_global.conn_mgr.max_n_conn = 1;
@@ -357,7 +362,7 @@ static int conn_manager_init()
     MPIDI_OFI_global.conn_mgr.free_conn_id[MPIDI_OFI_global.conn_mgr.max_n_conn - 1] = -1;
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_CONN_MANAGER_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_CONN_MANAGER_INIT);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -375,8 +380,8 @@ static int conn_manager_destroy()
     MPIR_Context_id_t context_id = 0xF000;
     MPIR_CHKLMEM_DECL(3);
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_CONN_MANAGER_DESTROY);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_CONN_MANAGER_DESTROY);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_CONN_MANAGER_DESTROY);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_CONN_MANAGER_DESTROY);
 
     match_bits = MPIDI_OFI_init_recvtag(&mask_bits, context_id, 1);
     match_bits |= MPIDI_OFI_DYNPROC_SEND;
@@ -434,7 +439,7 @@ static int conn_manager_destroy()
     MPL_free(MPIDI_OFI_global.conn_mgr.free_conn_id);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_CONN_MANAGER_DESTROY);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_CONN_MANAGER_DESTROY);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -451,8 +456,8 @@ static int dynproc_send_disconnect(int conn_id)
     struct fi_msg_tagged msg;
     struct iovec msg_iov;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DYNPROC_SEND_DISCONNECT);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DYNPROC_SEND_DISCONNECT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_DYNPROC_SEND_DISCONNECT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_DYNPROC_SEND_DISCONNECT);
 
     if (MPIDI_OFI_global.conn_mgr.conn_list[conn_id].state == MPIDI_OFI_DYNPROC_CONNECTED_CHILD) {
         MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
@@ -498,7 +503,7 @@ static int dynproc_send_disconnect(int conn_id)
                      conn_id, MPIDI_OFI_global.conn_mgr.conn_list[conn_id].state));
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_DYNPROC_SEND_DISCONNECT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_DYNPROC_SEND_DISCONNECT);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -511,8 +516,8 @@ int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_
     fi_addr_t *mapped_table;
     size_t optlen;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_INIT);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_INIT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_MPI_INIT_HOOK);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_MPI_INIT_HOOK);
 
     MPL_COMPILE_TIME_ASSERT(offsetof(struct MPIR_Request, dev.ch4.netmod) ==
                             offsetof(MPIDI_OFI_chunk_request, context));
@@ -684,7 +689,6 @@ int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_
             MPIDI_OFI_global.am_reqs[i].event_id = MPIDI_OFI_EVENT_AM_RECV;
             MPIDI_OFI_global.am_reqs[i].index = i;
             MPIR_Assert(MPIDI_OFI_global.am_bufs[i]);
-            MPIDI_OFI_ASSERT_IOVEC_ALIGN(&MPIDI_OFI_global.am_iov[i]);
             MPIDI_OFI_global.am_iov[i].iov_base = MPIDI_OFI_global.am_bufs[i];
             MPIDI_OFI_global.am_iov[i].iov_len = MPIDI_OFI_AM_BUFF_SZ;
             MPIDI_OFI_global.am_msg[i].msg_iov = &MPIDI_OFI_global.am_iov[i];
@@ -699,8 +703,8 @@ int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_
 
         MPIDIG_am_reg_cb(MPIDI_OFI_INTERNAL_HANDLER_CONTROL, NULL, &MPIDI_OFI_control_handler);
     }
-    OPA_store_int(&MPIDI_OFI_global.am_inflight_inject_emus, 0);
-    OPA_store_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs, 0);
+    MPL_atomic_store_int(&MPIDI_OFI_global.am_inflight_inject_emus, 0);
+    MPL_atomic_store_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs, 0);
 
     /* Initalize RMA keys allocator */
     MPIDI_OFI_mr_key_allocator_init();
@@ -718,7 +722,7 @@ int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_
   fn_exit:
     *tag_bits = MPIDI_OFI_TAG_BITS;
 
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_INIT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_MPI_INIT_HOOK);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -731,15 +735,15 @@ int MPIDI_OFI_mpi_finalize_hook(void)
     int barrier[2] = { 0 };
     MPIR_Errflag_t errflag = MPIR_ERR_NONE;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_FINALIZE);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_FINALIZE);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_MPI_FINALIZE_HOOK);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_MPI_FINALIZE_HOOK);
 
     /* clean dynamic process connections */
     mpi_errno = conn_manager_destroy();
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Progress until we drain all inflight RMA send long buffers */
-    while (OPA_load_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs) > 0)
+    while (MPL_atomic_load_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs) > 0)
         MPIDI_OFI_PROGRESS();
 
     /* Destroy RMA key allocator */
@@ -747,15 +751,14 @@ int MPIDI_OFI_mpi_finalize_hook(void)
 
     /* Barrier over allreduce, but force non-immediate send */
     MPIDI_OFI_global.max_buffered_send = 0;
-    mpi_errno =
-        MPIR_Allreduce(&barrier[0], &barrier[1], 1, MPI_INT, MPI_SUM, MPIR_Process.comm_world,
-                       &errflag);
+    mpi_errno = MPIR_Allreduce_allcomm_auto(&barrier[0], &barrier[1], 1, MPI_INT, MPI_SUM,
+                                            MPIR_Process.comm_world, &errflag);
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Progress until we drain all inflight injection emulation requests */
-    while (OPA_load_int(&MPIDI_OFI_global.am_inflight_inject_emus) > 0)
+    while (MPL_atomic_load_int(&MPIDI_OFI_global.am_inflight_inject_emus) > 0)
         MPIDI_OFI_PROGRESS();
-    MPIR_Assert(OPA_load_int(&MPIDI_OFI_global.am_inflight_inject_emus) == 0);
+    MPIR_Assert(MPL_atomic_load_int(&MPIDI_OFI_global.am_inflight_inject_emus) == 0);
 
     /* Tearing down endpoints */
     for (i = 1; i < MPIDI_OFI_global.num_ctx; i++) {
@@ -804,7 +807,7 @@ int MPIDI_OFI_mpi_finalize_hook(void)
     MPIR_Assert(err == 0);
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_FINALIZE);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_MPI_FINALIZE_HOOK);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -967,8 +970,8 @@ static int create_vni_context(int vni)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_CREATE_ENDPOINT);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_CREATE_ENDPOINT);
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_CREATE_VNI_CONTEXT);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_CREATE_VNI_CONTEXT);
 
     struct fi_info *prov_use = MPIDI_OFI_global.prov_use;
 
@@ -1087,7 +1090,7 @@ static int create_vni_context(int vni)
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_CREATE_ENDPOINT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_CREATE_VNI_CONTEXT);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -1169,7 +1172,7 @@ static int destroy_vni_context(int vni)
     }
 
   fn_exit:
-    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_CREATE_ENDPOINT);
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_DESTROY_VNI_CONTEXT);
     return mpi_errno;
   fn_fail:
     goto fn_exit;
@@ -1206,6 +1209,7 @@ static int create_vni_domain(struct fid_domain **p_domain, struct fid_av **p_av,
             av_attr.type = FI_AV_MAP;
         }
         av_attr.rx_ctx_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS;
+        av_attr.count = MPIR_Process.size;
 
         av_attr.name = NULL;
         av_attr.flags = 0;
@@ -1320,6 +1324,7 @@ static int try_open_shared_av(struct fid_domain *domain, struct fid_av **p_av)
         av_attr.type = FI_AV_MAP;
     }
     av_attr.rx_ctx_bits = MPIDI_OFI_MAX_ENDPOINTS_BITS;
+    av_attr.count = MPIR_Process.size;
 
     char av_name[128];
     MPL_snprintf(av_name, sizeof(av_name), "FI_NAMED_AV_%d\n", MPIR_Process.appnum);
@@ -1572,11 +1577,6 @@ static struct fi_info *pick_provider_by_global_settings(struct fi_info *prov_lis
         if (!match_global_settings(prov)) {
             prov = prov->next;
             continue;
-#ifdef MPIDI_CH4_OFI_SKIP_IPV6
-        } else if (prov->addr_format == FI_SOCKADDR_IN6) {
-            prov = prov->next;
-            continue;
-#endif
         } else {
             prov_use = prov;
             break;
@@ -1600,6 +1600,11 @@ bool match_global_settings(struct fi_info * prov)
     MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE, (MPL_DBG_FDEST, "Provider name: %s",
                                                      prov->fabric_attr->prov_name));
 
+#ifdef MPIDI_CH4_OFI_SKIP_IPV6
+    if (prov->addr_format == FI_SOCKADDR_IN6) {
+        return false;
+    }
+#endif
     CHECK_CAP(MPIDI_OFI_ENABLE_SCALABLE_ENDPOINTS,
               prov->domain_attr->max_ep_tx_ctx <= 1 ||
               (prov->caps & FI_NAMED_RX_CTX) != FI_NAMED_RX_CTX);
@@ -1624,7 +1629,9 @@ bool match_global_settings(struct fi_info * prov)
               (prov->caps & (FI_MSG | FI_MULTI_RECV)) != (FI_MSG | FI_MULTI_RECV));
 
     CHECK_CAP(MPIDI_OFI_ENABLE_RMA, !(prov->caps & FI_RMA));
-
+#ifdef FI_HMEM
+    CHECK_CAP(MPIDI_OFI_ENABLE_HMEM, !(prov->caps & FI_HMEM));
+#endif
     uint64_t msg_order = MPIDI_OFI_ATOMIC_ORDER_FLAGS;
     CHECK_CAP(MPIDI_OFI_ENABLE_ATOMICS,
               !(prov->caps & FI_ATOMICS) || (prov->tx_attr->msg_order & msg_order) != msg_order);
@@ -1736,7 +1743,9 @@ static void update_global_settings(struct fi_info *prov_use, struct fi_info *hin
                            (FI_MSG | FI_MULTI_RECV | FI_READ));
     UPDATE_SETTING_BY_INFO(enable_rma, prov_use->caps & FI_RMA);
     UPDATE_SETTING_BY_INFO(enable_atomics, prov_use->caps & FI_ATOMICS);
-
+#ifdef FI_HMEM
+    UPDATE_SETTING_BY_INFO(enable_hmem, prov_use->caps & FI_HMEM);
+#endif
     UPDATE_SETTING_BY_INFO(enable_data_auto_progress,
                            hints->domain_attr->data_progress & FI_PROGRESS_AUTO);
     UPDATE_SETTING_BY_INFO(enable_control_auto_progress,
@@ -1919,12 +1928,12 @@ static void dump_global_settings(void)
     fprintf(stdout, "MPIDI_OFI_ENABLE_RMA: %d\n", MPIDI_OFI_ENABLE_RMA);
     fprintf(stdout, "MPIDI_OFI_ENABLE_ATOMICS: %d\n", MPIDI_OFI_ENABLE_ATOMICS);
     fprintf(stdout, "MPIDI_OFI_FETCH_ATOMIC_IOVECS: %d\n", MPIDI_OFI_FETCH_ATOMIC_IOVECS);
-    fprintf(stdout, "MPIDI_OFI_IOVEC_ALIGN: %d\n", MPIDI_OFI_IOVEC_ALIGN);
     fprintf(stdout, "MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS: %d\n",
             MPIDI_OFI_ENABLE_DATA_AUTO_PROGRESS);
     fprintf(stdout, "MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS: %d\n",
             MPIDI_OFI_ENABLE_CONTROL_AUTO_PROGRESS);
     fprintf(stdout, "MPIDI_OFI_ENABLE_PT2PT_NOPACK: %d\n", MPIDI_OFI_ENABLE_PT2PT_NOPACK);
+    fprintf(stdout, "MPIDI_OFI_ENABLE_HMEM: %d\n", MPIDI_OFI_ENABLE_HMEM);
     fprintf(stdout, "MPIDI_OFI_NUM_AM_BUFFERS: %d\n", MPIDI_OFI_NUM_AM_BUFFERS);
     fprintf(stdout, "MPIDI_OFI_CONTEXT_BITS: %d\n", MPIDI_OFI_CONTEXT_BITS);
     fprintf(stdout, "MPIDI_OFI_SOURCE_BITS: %d\n", MPIDI_OFI_SOURCE_BITS);

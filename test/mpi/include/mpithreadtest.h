@@ -1,9 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef MPITHREADTEST_H_INCLUDED
 #define MPITHREADTEST_H_INCLUDED
 
@@ -27,6 +26,9 @@
 
 #if !defined(THREAD_PACKAGE_NAME)
 #error "thread package (THREAD_PACKAGE_NAME) not defined"
+
+#elif THREAD_PACKAGE_NAME == THREAD_PACKAGE_NONE
+/* Empty. No threaded tests should run. */
 
 #elif THREAD_PACKAGE_NAME == THREAD_PACKAGE_WIN
 #include <windows.h>
@@ -55,16 +57,20 @@
 
 #endif
 
+#if THREAD_PACKAGE_NAME != THREAD_PACKAGE_NONE
 int MTest_Start_thread(MTEST_THREAD_RETURN_TYPE(*fn) (void *p), void *arg);
 int MTest_Join_threads(void);
 int MTest_thread_lock_create(MTEST_THREAD_LOCK_TYPE *);
 int MTest_thread_lock(MTEST_THREAD_LOCK_TYPE *);
 int MTest_thread_unlock(MTEST_THREAD_LOCK_TYPE *);
 int MTest_thread_lock_free(MTEST_THREAD_LOCK_TYPE *);
+int MTest_thread_yield(void);
 int MTest_thread_barrier_init(void);
 int MTest_thread_barrier(int);
 int MTest_thread_barrier_free(void);
+#endif
 
-void MTest_init_thread_pkg(int argc, char **argv);
+void MTest_init_thread_pkg(void);
 void MTest_finalize_thread_pkg(void);
+
 #endif /* MPITHREADTEST_H_INCLUDED */

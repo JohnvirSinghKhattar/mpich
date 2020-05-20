@@ -1,13 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2018 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2018 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #include "mt_pt2pt_common.h"
 
 enum operation_types { TYPE_ASYNC, TYPE_SYNC };
@@ -102,7 +97,7 @@ int probetest_invoke_probe(int sender_rank, int tag, MPI_Comm comm, int *recv_co
             }
             break;
         default:
-            fprintf(stderr, "thread: %d: Probe type not defined \n");
+            fprintf(stderr, "Probe type not defined \n");
             MPI_Abort(MPI_COMM_WORLD, 1);
     }
     /* Find data count */
@@ -295,7 +290,14 @@ MTEST_THREAD_RETURN_TYPE run_test(void *arg)
 #else
     MTestPrintfMsg(2, "Testing probe_normal\n");
     p->result = test_probe_normal(p->id, p->iter, p->count, p->buff, p->comm, p->tag, p->verify);
-    MPI_Barrier(p->comm);
+
+    /* Barrier across threads. */
+    MTest_thread_barrier(NTHREADS);
+    if (p->id == 0) {
+        MPI_Barrier(p->comm);
+    }
+    MTest_thread_barrier(NTHREADS);
+
     MTestPrintfMsg(2, "Testing probe_nullproc\n");
     p->result += test_probe_nullproc(p->id, p->iter, p->count, p->buff, p->comm, p->tag, p->verify);
 #endif

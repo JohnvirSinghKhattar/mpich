@@ -1,13 +1,8 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef OFI_TYPES_H_INCLUDED
 #define OFI_TYPES_H_INCLUDED
 
@@ -110,11 +105,9 @@ static inline int MPIDI_OFI_idata_get_error_bits(uint64_t idata)
 
 
 #ifdef HAVE_FORTRAN_BINDING
-#ifdef MPICH_DEFINE_2COMPLEX
-#define MPIDI_OFI_DT_SIZES 63
-#else
+/* number of basic types defined in mpi.h */
+/* FIXME: should be defined in mpi.h or mpir_datatype.h and avoid magic number here */
 #define MPIDI_OFI_DT_SIZES 61
-#endif
 #else
 #define MPIDI_OFI_DT_SIZES 40
 #endif
@@ -281,6 +274,7 @@ typedef struct {
     unsigned enable_rma:1;
     unsigned enable_atomics:1;
     unsigned enable_pt2pt_nopack:1;
+    unsigned enable_hmem:1;
     unsigned enable_data_auto_progress:1;
     unsigned enable_control_auto_progress:1;
 
@@ -359,18 +353,13 @@ typedef struct {
     UT_array *rma_sep_idx_array;        /* Array of available indexes of transmit contexts on sep */
 
     /* Active Message Globals */
-#if MPIDI_OFI_IOVEC_ALIGN <= SIZEOF_VOID_P
     struct iovec am_iov[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
-#else
-    /* need bigger alignment */
-    struct iovec am_iov[MPIDI_OFI_MAX_NUM_AM_BUFFERS] MPL_ATTR_ALIGNED(MPIDI_OFI_IOVEC_ALIGN);
-#endif
     struct fi_msg am_msg[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
     void *am_bufs[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
     MPIDI_OFI_am_repost_request_t am_reqs[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
     MPIDIU_buf_pool_t *am_buf_pool;
-    OPA_int_t am_inflight_inject_emus;
-    OPA_int_t am_inflight_rma_send_mrs;
+    MPL_atomic_int_t am_inflight_inject_emus;
+    MPL_atomic_int_t am_inflight_rma_send_mrs;
     /* Sequence number trackers for active messages */
     void *am_send_seq_tracker;
     void *am_recv_seq_tracker;
@@ -428,7 +417,7 @@ typedef struct MPIDI_OFI_seg_state {
     size_t origin_count;
     MPI_Datatype origin_type;
     MPI_Aint origin_iov_len;    /* Length of data actually packed */
-    MPL_IOV origin_iov;         /* IOVEC returned after pack */
+    struct iovec origin_iov;    /* IOVEC returned after pack */
     uintptr_t origin_addr;      /* Address of data actually packed */
 
     size_t target_cursor;
@@ -437,7 +426,7 @@ typedef struct MPIDI_OFI_seg_state {
     size_t target_count;
     MPI_Datatype target_type;
     MPI_Aint target_iov_len;
-    MPL_IOV target_iov;
+    struct iovec target_iov;
     uintptr_t target_addr;
 
     size_t result_cursor;
@@ -446,7 +435,7 @@ typedef struct MPIDI_OFI_seg_state {
     size_t result_count;
     MPI_Datatype result_type;
     MPI_Aint result_iov_len;
-    MPL_IOV result_iov;
+    struct iovec result_iov;
     uintptr_t result_addr;
 } MPIDI_OFI_seg_state_t;
 
@@ -465,41 +454,32 @@ typedef struct MPIDI_OFI_win_acc_hint {
                                                          * This structure is prepared at window creation time. */
 } MPIDI_OFI_win_acc_hint_t;
 
-typedef struct {
-    char pad[MPIDI_REQUEST_HDR_SIZE];
-    struct fi_context context[MPIDI_OFI_CONTEXT_STRUCTS];       /* fixed field, do not move */
-    int event_id;               /* fixed field, do not move */
-    union {
-        struct {
-            struct iovec *originv;
-            struct fi_rma_iov *targetv;
-        } put_get;
-        struct {
-            struct fi_ioc *originv;
-            struct fi_rma_ioc *targetv;
-            struct fi_ioc *resultv;
-            struct fi_ioc *comparev;
-        } cas;
-        struct {
-            struct fi_ioc *originv;
-            struct fi_rma_ioc *targetv;
-        } accumulate;
-        struct {
-            struct fi_ioc *originv;
-            struct fi_rma_ioc *targetv;
-            struct fi_ioc *resultv;
-        } get_accumulate;
-    } iov;
-    char iov_store[];           /* Flexible array, do not move */
-} MPIDI_OFI_win_noncontig_t;
-
 typedef struct MPIDI_OFI_win_request {
     MPIR_OBJECT_HEADER;
     struct fi_context context[MPIDI_OFI_CONTEXT_STRUCTS];       /* fixed field, do not move */
     int event_id;               /* fixed field, do not move */
     struct MPIDI_OFI_win_request *next;
     int target_rank;
-    MPIDI_OFI_win_noncontig_t *noncontig;
+    struct {
+        union {
+            struct {
+                struct fi_ioc *originv;
+                struct fi_rma_ioc *targetv;
+                struct fi_ioc *resultv;
+                struct fi_ioc *comparev;
+            } cas;
+            struct {
+                struct fi_ioc *originv;
+                struct fi_rma_ioc *targetv;
+            } accumulate;
+            struct {
+                struct fi_ioc *originv;
+                struct fi_rma_ioc *targetv;
+                struct fi_ioc *resultv;
+            } get_accumulate;
+        } iov;
+        char *iov_store;
+    } noncontig;
 } MPIDI_OFI_win_request_t;
 
 typedef struct {

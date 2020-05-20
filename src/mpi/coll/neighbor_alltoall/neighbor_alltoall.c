@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2012 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -19,7 +18,7 @@ cvars:
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select neighbor_alltoall algorithm
-        auto - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
         nb   - Force nb algorithm
 
     - name        : MPIR_CVAR_NEIGHBOR_ALLTOALL_INTER_ALGORITHM
@@ -31,7 +30,7 @@ cvars:
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select neighbor_alltoall algorithm
-        auto - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
         nb   - Force nb algorithm
 
     - name        : MPIR_CVAR_NEIGHBOR_ALLTOALL_DEVICE_COLLECTIVE
@@ -74,38 +73,40 @@ int MPI_Neighbor_alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendt
 
 /* any non-MPI functions go here, especially non-static ones */
 
-int MPIR_Neighbor_alltoall_intra_auto(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                                      void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                                      MPIR_Comm * comm_ptr)
+
+int MPIR_Neighbor_alltoall_allcomm_auto(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                                        void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                                        MPIR_Comm * comm_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    mpi_errno = MPIR_Neighbor_alltoall_allcomm_nb(sendbuf, sendcount, sendtype,
-                                                  recvbuf, recvcount, recvtype, comm_ptr);
-    MPIR_ERR_CHECK(mpi_errno);
+    MPIR_Csel_coll_sig_s coll_sig = {
+        .coll_type = MPIR_CSEL_COLL_TYPE__NEIGHBOR_ALLTOALL,
+        .comm_ptr = comm_ptr,
 
-  fn_exit:
+        .u.neighbor_alltoall.sendbuf = sendbuf,
+        .u.neighbor_alltoall.sendcount = sendcount,
+        .u.neighbor_alltoall.sendtype = sendtype,
+        .u.neighbor_alltoall.recvcount = recvcount,
+        .u.neighbor_alltoall.recvbuf = recvbuf,
+        .u.neighbor_alltoall.recvtype = recvtype,
+    };
+
+    MPII_Csel_container_s *cnt = MPIR_Csel_search(comm_ptr->csel_comm, coll_sig);
+    MPIR_Assert(cnt);
+
+    switch (cnt->id) {
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Neighbor_alltoall_allcomm_nb:
+            mpi_errno =
+                MPIR_Neighbor_alltoall_allcomm_nb(sendbuf, sendcount, sendtype, recvbuf, recvcount,
+                                                  recvtype, comm_ptr);
+            break;
+
+        default:
+            MPIR_Assert(0);
+    }
+
     return mpi_errno;
-
-  fn_fail:
-    goto fn_exit;
-}
-
-int MPIR_Neighbor_alltoall_inter_auto(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                                      void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                                      MPIR_Comm * comm_ptr)
-{
-    int mpi_errno = MPI_SUCCESS;
-
-    mpi_errno = MPIR_Neighbor_alltoall_allcomm_nb(sendbuf, sendcount, sendtype,
-                                                  recvbuf, recvcount, recvtype, comm_ptr);
-    MPIR_ERR_CHECK(mpi_errno);
-
-  fn_exit:
-    return mpi_errno;
-
-  fn_fail:
-    goto fn_exit;
 }
 
 int MPIR_Neighbor_alltoall_impl(const void *sendbuf, int sendcount,
@@ -122,9 +123,9 @@ int MPIR_Neighbor_alltoall_impl(const void *sendbuf, int sendcount,
                                                               comm_ptr);
                 break;
             case MPIR_CVAR_NEIGHBOR_ALLTOALL_INTRA_ALGORITHM_auto:
-                mpi_errno = MPIR_Neighbor_alltoall_intra_auto(sendbuf, sendcount, sendtype,
-                                                              recvbuf, recvcount, recvtype,
-                                                              comm_ptr);
+                mpi_errno = MPIR_Neighbor_alltoall_allcomm_auto(sendbuf, sendcount, sendtype,
+                                                                recvbuf, recvcount, recvtype,
+                                                                comm_ptr);
                 break;
             default:
                 MPIR_Assert(0);
@@ -137,9 +138,9 @@ int MPIR_Neighbor_alltoall_impl(const void *sendbuf, int sendcount,
                                                               comm_ptr);
                 break;
             case MPIR_CVAR_NEIGHBOR_ALLTOALL_INTER_ALGORITHM_auto:
-                mpi_errno = MPIR_Neighbor_alltoall_inter_auto(sendbuf, sendcount, sendtype,
-                                                              recvbuf, recvcount, recvtype,
-                                                              comm_ptr);
+                mpi_errno = MPIR_Neighbor_alltoall_allcomm_auto(sendbuf, sendcount, sendtype,
+                                                                recvbuf, recvcount, recvtype,
+                                                                comm_ptr);
                 break;
             default:
                 MPIR_Assert(0);
@@ -209,7 +210,6 @@ int MPI_Neighbor_alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendt
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_NEIGHBOR_ALLTOALL);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_ENTER(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_NEIGHBOR_ALLTOALL);
 
     /* Validate parameters, especially handles needing to be converted */
@@ -269,7 +269,6 @@ int MPI_Neighbor_alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendt
   fn_exit:
     MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_NEIGHBOR_ALLTOALL);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_EXIT(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     return mpi_errno;
 
   fn_fail:

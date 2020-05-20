@@ -1,18 +1,12 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
+
 #ifndef OFI_SEND_H_INCLUDED
 #define OFI_SEND_H_INCLUDED
 
 #include "ofi_impl.h"
-#include <../mpi/pt2pt/bsendutil.h>
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send_lightweight(const void *buf,
                                                         size_t data_sz,
@@ -60,118 +54,41 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send_iov(const void *buf, MPI_Aint count,
                                                 MPIR_Datatype * dt_ptr)
 {
     int mpi_errno = MPI_SUCCESS;
-    struct iovec *originv = NULL, *originv_huge = NULL;
-    size_t countp =
-        MPIDI_OFI_count_iov(count, MPIDI_OFI_REQUEST(sreq, datatype), data_sz, SIZE_MAX);
-    size_t omax = MPIDI_OFI_global.tx_iov_limit;
-    size_t o_size = sizeof(struct iovec);
-    size_t cur_o = 0;
+    struct iovec *originv = NULL;
     struct fi_msg_tagged msg;
     uint64_t flags;
-    unsigned map_size;
-    int num_contig, size, j = 0, k = 0, huge = 0, length = 0;
-    size_t oout = 0;
-    size_t l = 0;
-    size_t countp_huge = 0;
-    size_t iov_align = MPL_MAX(MPIDI_OFI_IOVEC_ALIGN, sizeof(void *));
+    MPI_Aint num_contig, size;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_SEND_IOV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_SEND_IOV);
 
-    /* If the number of iovecs is greater than the supported hardware limit (to transfer in a single send),
-     *  fallback to the pack path */
-    if (countp > omax) {
+    /* if we cannot fit the entire data into a single IOV array,
+     * fallback to pack */
+    MPIR_Typerep_iov_len(count, MPIDI_OFI_REQUEST(sreq, datatype), dt_ptr->size * count,
+                         &num_contig);
+    if (num_contig > MPIDI_OFI_global.tx_iov_limit)
         goto pack;
-    }
 
+    /* everything fits in the IOV array */
     flags = FI_COMPLETION | FI_REMOTE_CQ_DATA;
     MPIDI_OFI_REQUEST(sreq, event_id) = MPIDI_OFI_EVENT_SEND_NOPACK;
 
-    map_size = dt_ptr->max_contig_blocks * count + 1;
-    num_contig = map_size;      /* map_size is the maximum number of iovecs that can be generated */
+    size = num_contig * sizeof(struct iovec) + sizeof(*(MPIDI_OFI_REQUEST(sreq, noncontig.nopack)));
 
-    size = o_size * num_contig + sizeof(*(MPIDI_OFI_REQUEST(sreq, noncontig.nopack)));
-
-    MPIDI_OFI_REQUEST(sreq, noncontig.nopack) = MPL_aligned_alloc(iov_align, size, MPL_MEM_BUFFER);
+    MPIDI_OFI_REQUEST(sreq, noncontig.nopack) = MPL_malloc(size, MPL_MEM_BUFFER);
     memset(MPIDI_OFI_REQUEST(sreq, noncontig.nopack), 0, size);
 
-    int actual_iov_len;
-    MPI_Aint actual_iov_bytes;
+    MPI_Aint actual_iov_len, actual_iov_bytes;
     MPIR_Typerep_to_iov(buf, count, MPIDI_OFI_REQUEST(sreq, datatype), 0,
                         MPIDI_OFI_REQUEST(sreq, noncontig.nopack), num_contig, dt_ptr->size * count,
                         &actual_iov_len, &actual_iov_bytes);
-    num_contig = actual_iov_len;
+    assert(num_contig == actual_iov_len);
 
-    originv = &(MPIDI_OFI_REQUEST(sreq, noncontig.nopack[cur_o]));
-    oout = num_contig;  /* num_contig is the actual number of iovecs returned by the Segment_pack_vector function */
+    originv = &(MPIDI_OFI_REQUEST(sreq, noncontig.nopack[0]));
 
-    if (oout > omax) {
-        MPL_free(MPIDI_OFI_REQUEST(sreq, noncontig.nopack));
-        goto pack;
-    }
-
-    /* check if the length of any iovec in the current iovec array exceeds the huge message threshold
-     * and calculate the total number of iovecs */
-    for (j = 0; j < num_contig; j++) {
-        if (originv[j].iov_len > MPIDI_OFI_global.max_msg_size) {
-            huge = 1;
-            countp_huge += originv[j].iov_len / MPIDI_OFI_global.max_msg_size;
-            if (originv[j].iov_len % MPIDI_OFI_global.max_msg_size) {
-                countp_huge++;
-            }
-        } else {
-            countp_huge++;
-        }
-    }
-
-    if (countp_huge > omax && huge) {
-        MPL_free(MPIDI_OFI_REQUEST(sreq, noncontig.nopack));
-        goto pack;
-    }
-
-    if (countp_huge >= 1 && huge) {
-        originv_huge =
-            MPL_aligned_alloc(iov_align, sizeof(struct iovec) * countp_huge, MPL_MEM_BUFFER);
-        MPIR_Assert(originv_huge != NULL);
-
-        for (j = 0; j < num_contig; j++) {
-            l = 0;
-            if (originv[j].iov_len > MPIDI_OFI_global.max_msg_size) {
-                while (l < originv[j].iov_len) {
-                    length = originv[j].iov_len - l;
-                    if (length > MPIDI_OFI_global.max_msg_size)
-                        length = MPIDI_OFI_global.max_msg_size;
-                    originv_huge[k].iov_base = (char *) originv[j].iov_base + l;
-                    originv_huge[k].iov_len = length;
-                    k++;
-                    l += length;
-                }
-
-            } else {
-                originv_huge[k].iov_base = originv[j].iov_base;
-                originv_huge[k].iov_len = originv[j].iov_len;
-                k++;
-            }
-        }
-    }
-
-    if (huge && k > omax) {
-        MPL_free(MPIDI_OFI_REQUEST(sreq, noncontig.nopack));
-        MPL_free(originv_huge);
-        goto pack;
-    }
-
-    if (huge) {
-        MPL_free(MPIDI_OFI_REQUEST(sreq, noncontig.nopack));
-        MPIDI_OFI_REQUEST(sreq, noncontig.nopack) = originv_huge;
-        originv = &(MPIDI_OFI_REQUEST(sreq, noncontig.nopack[cur_o]));
-        oout = k;
-    }
-
-    MPIDI_OFI_ASSERT_IOVEC_ALIGN(originv);
     msg.msg_iov = originv;
     msg.desc = NULL;
-    msg.iov_count = oout;
+    msg.iov_count = num_contig;
     msg.tag = match_bits;
     msg.ignore = 0ULL;
     msg.context = (void *) &(MPIDI_OFI_REQUEST(sreq, context));
@@ -205,6 +122,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send_normal(const void *buf, MPI_Aint cou
     MPIR_Request *sreq = *request;
     char *send_buf;
     uint64_t match_bits;
+    MPL_pointer_attr_t attr = { MPL_GPU_POINTER_UNREGISTERED_HOST, -1 };
+    bool force_gpu_pack = false;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_SEND_NORMAL);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_SEND_NORMAL);
@@ -239,12 +158,24 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send_normal(const void *buf, MPI_Aint cou
     }
 
     send_buf = (char *) buf + dt_true_lb;
+    MPL_gpu_query_pointer_attr(send_buf, &attr);
+    if (data_sz && attr.type == MPL_GPU_POINTER_DEV) {
+        if (!MPIDI_OFI_ENABLE_HMEM) {
+            /* Force packing of GPU buffer in host memory */
+            /* FIXME: at this point, GPU data takes host-buffer staging
+             * path for the whole chunk. For large memory size, pipeline
+             * transfer should be applied. */
+            dt_contig = 0;
+            force_gpu_pack = true;
+        }
+    }
 
-    if (!dt_contig) {
-        if (MPIDI_OFI_ENABLE_PT2PT_NOPACK && data_sz <= MPIDI_OFI_global.max_msg_size) {
+    if (!dt_contig && data_sz) {
+        if (MPIDI_OFI_ENABLE_PT2PT_NOPACK && data_sz <= MPIDI_OFI_global.max_msg_size &&
+            !force_gpu_pack) {
             mpi_errno =
-                MPIDI_OFI_send_iov(buf, count, data_sz, cq_data, dst_rank,
-                                   match_bits, comm, addr, sreq, dt_ptr);
+                MPIDI_OFI_send_iov(buf, count, data_sz, cq_data, dst_rank, match_bits, comm, addr,
+                                   sreq, dt_ptr);
             if (mpi_errno == MPI_SUCCESS)       /* Send posted using iov */
                 goto fn_exit;
             else if (mpi_errno != MPIDI_OFI_SEND_NEEDS_PACK)
@@ -258,18 +189,22 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send_normal(const void *buf, MPI_Aint cou
         /* Pack */
         MPIDI_OFI_REQUEST(sreq, event_id) = MPIDI_OFI_EVENT_SEND_PACK;
 
-        MPIDI_OFI_REQUEST(sreq, noncontig.pack) =
-            (MPIDI_OFI_pack_t *) MPL_malloc(data_sz + sizeof(MPIDI_OFI_pack_t), MPL_MEM_BUFFER);
-        MPIR_ERR_CHKANDJUMP1(MPIDI_OFI_REQUEST(sreq, noncontig.pack) == NULL, mpi_errno,
+        /* FIXME: allocating a GPU registered host buffer adds some additional overhead.
+         * However, once the new buffer pool infrastructure is setup, we would simply be
+         * allocating a buffer from the pool, so whether it's a regular malloc buffer or a GPU
+         * registered buffer should be equivalent with respect to performance. */
+        MPL_gpu_malloc_host((void **) &MPIDI_OFI_REQUEST(sreq, noncontig.pack.pack_buffer),
+                            data_sz);
+        MPIR_ERR_CHKANDJUMP1(MPIDI_OFI_REQUEST(sreq, noncontig.pack.pack_buffer) == NULL, mpi_errno,
                              MPI_ERR_OTHER, "**nomem", "**nomem %s", "Send Pack buffer alloc");
 
         MPI_Aint actual_pack_bytes;
         MPIR_Typerep_pack(buf, count, datatype, 0,
-                          MPIDI_OFI_REQUEST(sreq, noncontig.pack->pack_buffer), data_sz,
+                          MPIDI_OFI_REQUEST(sreq, noncontig.pack.pack_buffer), data_sz,
                           &actual_pack_bytes);
-        send_buf = MPIDI_OFI_REQUEST(sreq, noncontig.pack->pack_buffer);
+        send_buf = MPIDI_OFI_REQUEST(sreq, noncontig.pack.pack_buffer);
     } else {
-        MPIDI_OFI_REQUEST(sreq, noncontig.pack) = NULL;
+        MPIDI_OFI_REQUEST(sreq, noncontig.pack.pack_buffer) = NULL;
         MPIDI_OFI_REQUEST(sreq, noncontig.nopack) = NULL;
     }
 
@@ -375,8 +310,27 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send(const void *buf, MPI_Aint count, MPI
     MPIDI_Datatype_get_info(count, datatype, dt_contig, data_sz, dt_ptr, dt_true_lb);
 
     if (likely(!syncflag && dt_contig && (data_sz <= MPIDI_OFI_global.max_buffered_send))) {
-        mpi_errno = MPIDI_OFI_send_lightweight((char *) buf + dt_true_lb, data_sz,
+        MPL_pointer_attr_t attr = { MPL_GPU_POINTER_UNREGISTERED_HOST, -1 };
+        MPI_Aint actual_pack_bytes = 0;
+        void *send_buf = (char *) buf + dt_true_lb;
+        MPL_gpu_query_pointer_attr(send_buf, &attr);
+        if (attr.type == MPL_GPU_POINTER_DEV) {
+            if (!MPIDI_OFI_ENABLE_HMEM) {
+                /* Force pack for GPU buffer. */
+                void *host_buf = NULL;
+                MPL_gpu_malloc_host(&host_buf, data_sz);
+                MPIR_Typerep_pack(buf, count, datatype, 0, host_buf, data_sz, &actual_pack_bytes);
+                MPIR_Assert(actual_pack_bytes == data_sz);
+                send_buf = host_buf;
+            }
+        }
+        mpi_errno = MPIDI_OFI_send_lightweight(send_buf, data_sz,
                                                cq_data, dst_rank, tag, comm, context_offset, addr);
+        if (actual_pack_bytes > 0) {
+            /* Free stage host buf (asigned to send_buf already) after
+             * lightweight_send. */
+            MPL_gpu_free_host(send_buf);
+        }
         if (!noreq) {
             *request = MPIR_Request_create_complete(MPIR_REQUEST_KIND__SEND);
         }
@@ -407,7 +361,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_send(const void *buf, MPI_Aint count,
 #endif
     {
         mpi_errno = MPIDI_OFI_send(buf, count, datatype, rank, tag, comm,
-                                   context_offset, addr, request, (*request == NULL), 0ULL, 0);
+                                   context_offset, addr, request, (*request == NULL), 0ULL,
+                                   MPIR_ERR_NONE);
     }
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_SEND);
@@ -472,7 +427,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_ssend(const void *buf, MPI_Aint count,
 #endif
     {
         mpi_errno = MPIDI_OFI_send(buf, count, datatype, rank, tag, comm,
-                                   context_offset, addr, request, 0, MPIDI_OFI_SYNC_SEND, 0);
+                                   context_offset, addr, request, 0, MPIDI_OFI_SYNC_SEND,
+                                   MPIR_ERR_NONE);
     }
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_SSEND);
@@ -497,7 +453,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_isend(const void *buf, MPI_Aint count,
 #endif
     {
         mpi_errno = MPIDI_OFI_send(buf, count, datatype, rank, tag, comm,
-                                   context_offset, addr, request, 0, 0ULL, 0);
+                                   context_offset, addr, request, 0, 0ULL, MPIR_ERR_NONE);
     }
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_ISEND);
@@ -562,7 +518,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_issend(const void *buf, MPI_Aint count
 #endif
     {
         mpi_errno = MPIDI_OFI_send(buf, count, datatype, rank, tag, comm,
-                                   context_offset, addr, request, 0, MPIDI_OFI_SYNC_SEND, 0);
+                                   context_offset, addr, request, 0, MPIDI_OFI_SYNC_SEND,
+                                   MPIR_ERR_NONE);
     }
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_MPI_ISSEND);

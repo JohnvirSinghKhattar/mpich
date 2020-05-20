@@ -1,12 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- * (C) 2006 by Argonne National Laboratory.
- *     See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2017 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* Header protection (i.e., IALLGATHERV_TSP_BRUCKS_ALGOS_H_INCLUDED) is
@@ -103,11 +97,11 @@ MPIR_TSP_Iallgatherv_sched_intra_brucks(const void *sendbuf, int sendcount, MPI_
 
 #ifdef MPL_USE_DBG_LOGGING
     MPIR_Datatype_get_size_macro(sendtype, sendtype_size);
-#endif
 
     MPL_DBG_MSG_FMT(MPIR_DBG_COLL, VERBOSE,
                     (MPL_DBG_FDEST, "send_type_size: %lu, sendtype_extent: %lu, send_count: %d",
                      sendtype_size, sendtype_extent, sendcount));
+#endif
 
     while (max) {
         nphases++;

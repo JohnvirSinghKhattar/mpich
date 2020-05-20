@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2010 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -23,26 +22,28 @@ cvars:
     - name        : MPIR_CVAR_IBARRIER_INTRA_ALGORITHM
       category    : COLLECTIVE
       type        : enum
-      default     : sched_auto
+      default     : auto
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select ibarrier algorithm
-        sched_auto               - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
+        sched_auto - Internal algorithm selection for sched-based algorithms
         sched_recursive_doubling - Force recursive doubling algorithm
         gentran_recexch          - Force generic transport based recursive exchange algorithm
 
     - name        : MPIR_CVAR_IBARRIER_INTER_ALGORITHM
       category    : COLLECTIVE
       type        : enum
-      default     : sched_auto
+      default     : auto
       class       : none
       verbosity   : MPI_T_VERBOSITY_USER_BASIC
       scope       : MPI_T_SCOPE_ALL_EQ
       description : |-
         Variable to select ibarrier algorithm
-        sched_auto  - Internal algorithm selection
+        auto - Internal algorithm selection (can be overridden with MPIR_CVAR_COLL_SELECTION_TUNING_JSON_FILE)
+        sched_auto - Internal algorithm selection for sched-based algorithms
         sched_bcast - Force bcast algorithm
 
     - name        : MPIR_CVAR_IBARRIER_DEVICE_COLLECTIVE
@@ -83,6 +84,54 @@ int MPI_Ibarrier(MPI_Comm comm, MPI_Request * request)
 #define MPI_Ibarrier PMPI_Ibarrier
 
 /* any non-MPI functions go here, especially non-static ones */
+
+
+int MPIR_Ibarrier_allcomm_auto(MPIR_Comm * comm_ptr, MPIR_Request ** request)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    MPIR_Csel_coll_sig_s coll_sig = {
+        .coll_type = MPIR_CSEL_COLL_TYPE__IBARRIER,
+        .comm_ptr = comm_ptr,
+    };
+
+    MPII_Csel_container_s *cnt = MPIR_Csel_search(comm_ptr->csel_comm, coll_sig);
+    MPIR_Assert(cnt);
+
+    switch (cnt->id) {
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ibarrier_intra_sched_auto:
+            MPII_SCHED_WRAPPER_EMPTY(MPIR_Ibarrier_intra_sched_auto, comm_ptr, request);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ibarrier_intra_sched_recursive_doubling:
+            MPII_SCHED_WRAPPER_EMPTY(MPIR_Ibarrier_intra_sched_recursive_doubling, comm_ptr,
+                                     request);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ibarrier_intra_gentran_recexch:
+            mpi_errno =
+                MPIR_Ibarrier_intra_gentran_recexch(comm_ptr,
+                                                    cnt->u.ibarrier.intra_gentran_recexch.k,
+                                                    request);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ibarrier_inter_sched_auto:
+            MPII_SCHED_WRAPPER_EMPTY(MPIR_Ibarrier_inter_sched_auto, comm_ptr, request);
+            break;
+
+        case MPII_CSEL_CONTAINER_TYPE__ALGORITHM__MPIR_Ibarrier_inter_sched_bcast:
+            MPII_SCHED_WRAPPER_EMPTY(MPIR_Ibarrier_inter_sched_bcast, comm_ptr, request);
+            break;
+
+        default:
+            MPIR_Assert(0);
+    }
+
+  fn_exit:
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
 
 int MPIR_Ibarrier_intra_sched_auto(MPIR_Comm * comm_ptr, MPIR_Sched_t s)
 {
@@ -147,6 +196,10 @@ int MPIR_Ibarrier_impl(MPIR_Comm * comm_ptr, MPIR_Request ** request)
                 MPII_SCHED_WRAPPER_EMPTY(MPIR_Ibarrier_intra_sched_auto, comm_ptr, request);
                 break;
 
+            case MPIR_CVAR_IBARRIER_INTRA_ALGORITHM_auto:
+                mpi_errno = MPIR_Ibarrier_allcomm_auto(comm_ptr, request);
+                break;
+
             default:
                 MPIR_Assert(0);
         }
@@ -158,6 +211,10 @@ int MPIR_Ibarrier_impl(MPIR_Comm * comm_ptr, MPIR_Request ** request)
 
             case MPIR_CVAR_IBARRIER_INTER_ALGORITHM_sched_auto:
                 MPII_SCHED_WRAPPER_EMPTY(MPIR_Ibarrier_inter_sched_auto, comm_ptr, request);
+                break;
+
+            case MPIR_CVAR_IBARRIER_INTER_ALGORITHM_auto:
+                mpi_errno = MPIR_Ibarrier_allcomm_auto(comm_ptr, request);
                 break;
 
             default:
@@ -224,7 +281,6 @@ int MPI_Ibarrier(MPI_Comm comm, MPI_Request * request)
     MPIR_FUNC_TERSE_STATE_DECL(MPID_STATE_MPI_IBARRIER);
 
     MPID_THREAD_CS_ENTER(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_ENTER(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     MPIR_FUNC_TERSE_ENTER(MPID_STATE_MPI_IBARRIER);
 
     /* Validate parameters, especially handles needing to be converted */
@@ -274,7 +330,6 @@ int MPI_Ibarrier(MPI_Comm comm, MPI_Request * request)
   fn_exit:
     MPIR_FUNC_TERSE_EXIT(MPID_STATE_MPI_IBARRIER);
     MPID_THREAD_CS_EXIT(GLOBAL, MPIR_THREAD_GLOBAL_ALLFUNC_MUTEX);
-    MPID_THREAD_CS_EXIT(VCI, MPIR_THREAD_VCI_GLOBAL_MUTEX);
     return mpi_errno;
 
   fn_fail:

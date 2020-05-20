@@ -1,12 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2006 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2017 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 /* Header protection (i.e., IALLGATHERV_TSP_RING_ALGOS_H_INCLUDED) is
@@ -167,7 +161,7 @@ int MPIR_TSP_Iallgatherv_intra_ring(const void *sendbuf, int sendcount, MPI_Data
 
     /* generate the schedule */
     sched = MPL_malloc(sizeof(MPIR_TSP_sched_t), MPL_MEM_COLL);
-    MPIR_Assert(sched != NULL);
+    MPIR_ERR_CHKANDJUMP(!sched, mpi_errno, MPI_ERR_OTHER, "**nomem");
     MPIR_TSP_sched_create(sched);
 
     mpi_errno =

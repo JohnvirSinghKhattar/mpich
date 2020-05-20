@@ -1,12 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2019 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- *
- *  Portions of this code were written by Intel Corporation.
- *  Copyright (C) 2011-2016 Intel Corporation.  Intel provides this material
- *  to Argonne National Laboratory subject to Software Grant and Corporate
- *  Contributor License Agreement dated February 8, 2012.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpidimpl.h"
@@ -62,8 +56,10 @@ int MPID_Comm_spawn_multiple(int count, char *commands[], char **argvs[], const 
             preput_keyval_vector.key = MPIDI_PARENT_PORT_KVSKEY;
             preput_keyval_vector.val = port_name;
 
+            MPID_THREAD_CS_ENTER(VCI, MPIDIU_THREAD_DYNPROC_MUTEX);
             mpi_errno = MPIR_pmi_spawn_multiple(count, commands, argvs, maxprocs, info_ptrs,
                                                 1, &preput_keyval_vector, pmi_errcodes);
+            MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_DYNPROC_MUTEX);
             if (mpi_errno != MPI_SUCCESS) {
                 spawn_error = 1;
             }

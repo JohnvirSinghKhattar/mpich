@@ -1,7 +1,6 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2014 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+ * Copyright (C) by Argonne National Laboratory
+ *     See COPYRIGHT in top-level directory
  */
 
 #include "mpiimpl.h"
@@ -296,7 +295,7 @@ static void coll_handle_complete(void *handle)
     MPIR_Request *req;
     if (NULL != handle) {
         req = (MPIR_Request *) handle;
-        MPID_Request_complete(req);
+        MPIR_Request_complete(req);
     }
 }
 
